@@ -13,6 +13,9 @@ const AuthButtons: React.FC = () => {
         <span className="text-sm hidden md:inline-block">
           Hello, {profile?.full_name || user.email}
         </span>
+        <Button variant="outline" asChild>
+          <Link to="/dashboard">Dashboard</Link>
+        </Button>
         <Button variant="outline" onClick={signOut}>
           Log Out
         </Button>

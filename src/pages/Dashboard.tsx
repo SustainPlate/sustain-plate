@@ -16,7 +16,7 @@ const Dashboard: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [localLoading, setLocalLoading] = useState(true);
   const [retryCount, setRetryCount] = useState(0);
-  const [renderKey, setRenderKey] = useState(0); // Add a key to force re-render
+  const [renderKey, setRenderKey] = useState(0); // Key to force re-render
 
   // Debug authentication state
   useEffect(() => {

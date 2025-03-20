@@ -35,7 +35,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         console.error('Error fetching profile:', error);
         
         if (error.code === 'PGRST116') {
-          console.log('Profile not found, attempting to create a default profile');
+          console.log('Profile not found, creating a default profile');
           
           // Extract user information from metadata if available
           let userType = 'donor'; // Default to donor
@@ -66,10 +66,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           } else if (insertData) {
             console.log('Created default profile:', insertData);
             setProfile(insertData);
-          } else {
-            // Fetch the profile again as a fallback
-            console.log('Fetching profile again after creation');
-            await fetchProfile(userId);
+            return;
           }
         } else {
           toast({
@@ -81,13 +78,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       } else if (data) {
         console.log('Profile fetched successfully:', data);
         setProfile(data);
+        return;
       } else {
         console.warn('No profile found for user:', userId);
       }
     } catch (error) {
       console.error('Exception fetching profile:', error);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -96,6 +92,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     if (user) {
       setLoading(true);
       await fetchProfile(user.id);
+      setLoading(false);
     }
   };
 
@@ -112,9 +109,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         
         if (session?.user) {
           await fetchProfile(session.user.id);
-        } else {
-          setLoading(false);
         }
+        setLoading(false);
       } catch (error) {
         console.error('Error initializing auth:', error);
         setLoading(false);
@@ -134,8 +130,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           await fetchProfile(session.user.id);
         } else {
           setProfile(null);
-          setLoading(false);
         }
+        setLoading(false);
       }
     );
 

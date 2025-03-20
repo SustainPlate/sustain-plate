@@ -13,11 +13,26 @@ const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [error, setError] = useState<string | null>(null);
+  const [localLoading, setLocalLoading] = useState(true);
 
   // Debug authentication state
   useEffect(() => {
     console.log('Dashboard auth state:', { user, profile, loading });
+    
+    // Use a short timeout to prevent infinite loading
+    const timer = setTimeout(() => {
+      setLocalLoading(false);
+    }, 3000);
+    
+    return () => clearTimeout(timer);
   }, [user, profile, loading]);
+
+  // Set local loading state based on auth loading
+  useEffect(() => {
+    if (!loading) {
+      setLocalLoading(false);
+    }
+  }, [loading]);
 
   // Redirect to auth page if not logged in
   useEffect(() => {
@@ -41,10 +56,14 @@ const Dashboard: React.FC = () => {
     }
   }, [user, profile, loading, toast]);
 
-  if (loading) {
+  // Force render after a certain time to prevent infinite loading
+  if (localLoading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
-        <Loader2 className="animate-spin h-8 w-8 text-green-600" />
+        <div className="text-center">
+          <Loader2 className="animate-spin h-8 w-8 text-green-600 mx-auto mb-4" />
+          <p className="text-sm text-gray-500">Loading your dashboard...</p>
+        </div>
       </div>
     );
   }

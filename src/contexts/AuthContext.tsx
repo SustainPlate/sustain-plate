@@ -38,15 +38,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           description: "Failed to fetch user profile: " + error.message,
           variant: "destructive",
         });
+        // Don't set loading to false here to allow retries
       } else if (data) {
         console.log('Profile fetched successfully:', data);
         setProfile(data);
+        setLoading(false);
       } else {
         console.warn('No profile found for user:', userId);
+        setLoading(false);
       }
     } catch (error) {
       console.error('Exception fetching profile:', error);
-    } finally {
       setLoading(false);
     }
   };
@@ -99,8 +101,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
     );
 
+    // Set a timeout to ensure we don't hang in loading state
+    const timeout = setTimeout(() => {
+      if (loading) {
+        console.log('Auth initialization timeout reached, forcing loading state to false');
+        setLoading(false);
+      }
+    }, 5000);
+
     return () => {
       subscription.unsubscribe();
+      clearTimeout(timeout);
     };
   }, []);
 

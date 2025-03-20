@@ -5,19 +5,21 @@ import { useAuth } from '@/contexts/AuthContext';
 import DonorDashboard from '@/components/dashboard/DonorDashboard';
 import NgoDashboard from '@/components/dashboard/NgoDashboard';
 import VolunteerDashboard from '@/components/dashboard/VolunteerDashboard';
-import { Loader2 } from 'lucide-react';
+import { Loader2, RefreshCcw } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
+import { Button } from '@/components/ui/button';
 
 const Dashboard: React.FC = () => {
-  const { user, profile, loading } = useAuth();
+  const { user, profile, loading, refreshProfile } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [error, setError] = useState<string | null>(null);
   const [localLoading, setLocalLoading] = useState(true);
+  const [retryCount, setRetryCount] = useState(0);
 
   // Debug authentication state
   useEffect(() => {
-    console.log('Dashboard auth state:', { user, profile, loading });
+    console.log('Dashboard auth state:', { user, profile, loading, retryCount });
     
     // Use a short timeout to prevent infinite loading
     const timer = setTimeout(() => {
@@ -25,7 +27,7 @@ const Dashboard: React.FC = () => {
     }, 3000);
     
     return () => clearTimeout(timer);
-  }, [user, profile, loading]);
+  }, [user, profile, loading, retryCount]);
 
   // Set local loading state based on auth loading
   useEffect(() => {
@@ -42,9 +44,22 @@ const Dashboard: React.FC = () => {
     }
   }, [user, loading, navigate]);
 
-  // If profile is missing but user exists, show error
+  // Auto-retry profile fetch if user exists but profile is missing
   useEffect(() => {
-    if (!loading && user && !profile) {
+    if (!loading && user && !profile && retryCount < 2) {
+      const retryTimer = setTimeout(() => {
+        console.log(`Retry ${retryCount + 1}: Attempting to refresh profile...`);
+        refreshProfile();
+        setRetryCount(prev => prev + 1);
+      }, 1500);
+      
+      return () => clearTimeout(retryTimer);
+    }
+  }, [user, profile, loading, refreshProfile, retryCount]);
+
+  // Show error if profile is missing after retries
+  useEffect(() => {
+    if (!loading && user && !profile && retryCount >= 2) {
       const errorMsg = 'User profile not found. Please contact support.';
       console.error(errorMsg);
       setError(errorMsg);
@@ -54,7 +69,13 @@ const Dashboard: React.FC = () => {
         variant: "destructive",
       });
     }
-  }, [user, profile, loading, toast]);
+  }, [user, profile, loading, toast, retryCount]);
+
+  const handleManualRetry = () => {
+    setError(null);
+    setLocalLoading(true);
+    refreshProfile();
+  };
 
   // Force render after a certain time to prevent infinite loading
   if (localLoading) {
@@ -74,7 +95,14 @@ const Dashboard: React.FC = () => {
         <div className="container mx-auto px-4 text-center">
           <h1 className="text-2xl font-bold text-red-600 mb-4">Error Loading Dashboard</h1>
           <p className="mb-4">{error}</p>
-          <p>Please try refreshing the page or contact support if the issue persists.</p>
+          <p className="mb-6">The system might need a moment to set up your profile.</p>
+          <Button 
+            onClick={handleManualRetry} 
+            variant="outline" 
+            className="mx-auto flex items-center gap-2"
+          >
+            <RefreshCcw className="h-4 w-4" /> Try Again
+          </Button>
         </div>
       </div>
     );

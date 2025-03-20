@@ -33,12 +33,41 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       if (error) {
         console.error('Error fetching profile:', error);
-        toast({
-          title: "Profile Error",
-          description: "Failed to fetch user profile: " + error.message,
-          variant: "destructive",
-        });
-        // Don't set loading to false here to allow retries
+        
+        // Check if it's a "not found" error which might indicate missing profile
+        if (error.code === 'PGRST116') {
+          console.log('Profile not found, may need to create one');
+          // We'll try to create a profile with default values
+          const { error: insertError } = await supabase
+            .from('profiles')
+            .insert({ 
+              id: userId,
+              user_type: 'donor', // Default to donor
+              full_name: '' 
+            });
+            
+          if (insertError) {
+            console.error('Failed to create profile:', insertError);
+            toast({
+              title: "Profile Error",
+              description: "Failed to create a user profile. Please try again.",
+              variant: "destructive",
+            });
+            setLoading(false);
+          } else {
+            // Successfully created profile, now fetch it
+            console.log('Created default profile, fetching it again');
+            fetchProfile(userId);
+            return; // Exit early as we're calling fetchProfile again
+          }
+        } else {
+          toast({
+            title: "Profile Error",
+            description: "Failed to fetch user profile: " + error.message,
+            variant: "destructive",
+          });
+          setLoading(false);
+        }
       } else if (data) {
         console.log('Profile fetched successfully:', data);
         setProfile(data);

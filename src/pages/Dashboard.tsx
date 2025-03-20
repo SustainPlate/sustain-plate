@@ -16,6 +16,7 @@ const Dashboard: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [localLoading, setLocalLoading] = useState(true);
   const [retryCount, setRetryCount] = useState(0);
+  const [renderKey, setRenderKey] = useState(0); // Add a key to force re-render
 
   // Debug authentication state
   useEffect(() => {
@@ -32,7 +33,12 @@ const Dashboard: React.FC = () => {
   // Set local loading state based on auth loading
   useEffect(() => {
     if (!loading) {
-      setLocalLoading(false);
+      // Add a small delay to ensure other state updates have processed
+      setTimeout(() => {
+        setLocalLoading(false);
+      }, 100);
+    } else {
+      setLocalLoading(true);
     }
   }, [loading]);
 
@@ -46,12 +52,12 @@ const Dashboard: React.FC = () => {
 
   // Auto-retry profile fetch if user exists but profile is missing
   useEffect(() => {
-    if (!loading && user && !profile && retryCount < 2) {
+    if (!loading && user && !profile && retryCount < 3) {
       const retryTimer = setTimeout(() => {
         console.log(`Retry ${retryCount + 1}: Attempting to refresh profile...`);
         refreshProfile();
         setRetryCount(prev => prev + 1);
-      }, 1500);
+      }, 1000);
       
       return () => clearTimeout(retryTimer);
     }
@@ -59,8 +65,8 @@ const Dashboard: React.FC = () => {
 
   // Show error if profile is missing after retries
   useEffect(() => {
-    if (!loading && user && !profile && retryCount >= 2) {
-      const errorMsg = 'User profile not found. Please contact support.';
+    if (!loading && user && !profile && retryCount >= 3) {
+      const errorMsg = 'User profile not found. Please try refreshing the page.';
       console.error(errorMsg);
       setError(errorMsg);
       toast({
@@ -74,7 +80,9 @@ const Dashboard: React.FC = () => {
   const handleManualRetry = () => {
     setError(null);
     setLocalLoading(true);
+    setRetryCount(0);
     refreshProfile();
+    setRenderKey(prev => prev + 1); // Force re-render on retry
   };
 
   // Force render after a certain time to prevent infinite loading
@@ -95,7 +103,7 @@ const Dashboard: React.FC = () => {
         <div className="container mx-auto px-4 text-center">
           <h1 className="text-2xl font-bold text-red-600 mb-4">Error Loading Dashboard</h1>
           <p className="mb-4">{error}</p>
-          <p className="mb-6">The system might need a moment to set up your profile.</p>
+          <p className="mb-6">Please try refreshing the page or contact support if the issue persists.</p>
           <Button 
             onClick={handleManualRetry} 
             variant="outline" 
@@ -108,19 +116,36 @@ const Dashboard: React.FC = () => {
     );
   }
 
+  // Safety check - if profile is still null despite checks, show loading
+  if (!profile) {
+    return (
+      <div className="pt-24 pb-16 min-h-screen bg-slate-50">
+        <div className="container mx-auto px-4 text-center">
+          <Loader2 className="animate-spin h-8 w-8 text-green-600 mx-auto mb-4" />
+          <p>Loading profile data...</p>
+          <Button 
+            onClick={handleManualRetry} 
+            variant="outline" 
+            className="mx-auto mt-4 flex items-center gap-2"
+          >
+            <RefreshCcw className="h-4 w-4" /> Reload
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   // Return appropriate dashboard based on user type
   const renderDashboard = () => {
-    if (!profile) return null;
-
     console.log('Rendering dashboard for user type:', profile.user_type);
     
     switch (profile.user_type) {
       case 'donor':
-        return <DonorDashboard />;
+        return <DonorDashboard key={renderKey} />;
       case 'ngo':
-        return <NgoDashboard />;
+        return <NgoDashboard key={renderKey} />;
       case 'volunteer':
-        return <VolunteerDashboard />;
+        return <VolunteerDashboard key={renderKey} />;
       default:
         return (
           <div className="text-center py-8">

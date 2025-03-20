@@ -34,31 +34,42 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (error) {
         console.error('Error fetching profile:', error);
         
-        // Check if it's a "not found" error which might indicate missing profile
         if (error.code === 'PGRST116') {
-          console.log('Profile not found, may need to create one');
-          // We'll try to create a profile with default values
-          const { error: insertError } = await supabase
+          console.log('Profile not found, attempting to create a default profile');
+          
+          // Extract user information from metadata if available
+          let userType = 'donor'; // Default to donor
+          let fullName = '';
+          
+          if (user?.user_metadata) {
+            userType = user.user_metadata.user_type || 'donor';
+            fullName = user.user_metadata.full_name || user.user_metadata.name || '';
+          }
+          
+          const { error: insertError, data: insertData } = await supabase
             .from('profiles')
             .insert({ 
               id: userId,
-              user_type: 'donor', // Default to donor
-              full_name: '' 
-            });
+              user_type: userType,
+              full_name: fullName
+            })
+            .select()
+            .single();
             
           if (insertError) {
             console.error('Failed to create profile:', insertError);
             toast({
               title: "Profile Error",
-              description: "Failed to create a user profile. Please try again.",
+              description: "Failed to create a user profile. Please try again or refresh the page.",
               variant: "destructive",
             });
-            setLoading(false);
+          } else if (insertData) {
+            console.log('Created default profile:', insertData);
+            setProfile(insertData);
           } else {
-            // Successfully created profile, now fetch it
-            console.log('Created default profile, fetching it again');
-            fetchProfile(userId);
-            return; // Exit early as we're calling fetchProfile again
+            // Fetch the profile again as a fallback
+            console.log('Fetching profile again after creation');
+            await fetchProfile(userId);
           }
         } else {
           toast({
@@ -66,18 +77,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             description: "Failed to fetch user profile: " + error.message,
             variant: "destructive",
           });
-          setLoading(false);
         }
       } else if (data) {
         console.log('Profile fetched successfully:', data);
         setProfile(data);
-        setLoading(false);
       } else {
         console.warn('No profile found for user:', userId);
-        setLoading(false);
       }
     } catch (error) {
       console.error('Exception fetching profile:', error);
+    } finally {
       setLoading(false);
     }
   };
@@ -91,10 +100,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   useEffect(() => {
+    console.log('Initializing authentication');
     // Get initial session
     const initializeAuth = async () => {
       try {
-        console.log('Initializing authentication');
         const { data: { session } } = await supabase.auth.getSession();
         
         console.log('Initial session:', session ? 'Found' : 'None');
@@ -116,8 +125,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        console.log('Auth state changed:', _event);
+      async (event, session) => {
+        console.log('Auth state changed:', event);
         setSession(session);
         setUser(session?.user ?? null);
         
@@ -148,6 +157,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       setLoading(true);
       await supabase.auth.signOut();
+      setProfile(null);
       toast({
         title: "Signed out",
         description: "You have been successfully signed out.",

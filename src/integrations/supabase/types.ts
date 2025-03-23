@@ -9,9 +9,64 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      deliveries: {
+        Row: {
+          created_at: string | null
+          delivery_time: string | null
+          donation_id: string
+          id: string
+          ngo_id: string | null
+          notes: string | null
+          pickup_time: string | null
+          status: string
+          updated_at: string | null
+          volunteer_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          delivery_time?: string | null
+          donation_id: string
+          id?: string
+          ngo_id?: string | null
+          notes?: string | null
+          pickup_time?: string | null
+          status?: string
+          updated_at?: string | null
+          volunteer_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          delivery_time?: string | null
+          donation_id?: string
+          id?: string
+          ngo_id?: string | null
+          notes?: string | null
+          pickup_time?: string | null
+          status?: string
+          updated_at?: string | null
+          volunteer_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deliveries_donation_id_fkey"
+            columns: ["donation_id"]
+            isOneToOne: false
+            referencedRelation: "donations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deliveries_volunteer_id_fkey"
+            columns: ["volunteer_id"]
+            isOneToOne: false
+            referencedRelation: "volunteers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       donations: {
         Row: {
           additional_notes: string | null
+          assigned_ngo_id: string | null
           created_at: string | null
           description: string | null
           dietary_info: string | null
@@ -19,6 +74,7 @@ export type Database = {
           expiry_date: string
           food_name: string
           id: string
+          matched: boolean | null
           pickup_address: string
           quantity: number
           status: string | null
@@ -28,6 +84,7 @@ export type Database = {
         }
         Insert: {
           additional_notes?: string | null
+          assigned_ngo_id?: string | null
           created_at?: string | null
           description?: string | null
           dietary_info?: string | null
@@ -35,6 +92,7 @@ export type Database = {
           expiry_date: string
           food_name: string
           id?: string
+          matched?: boolean | null
           pickup_address: string
           quantity: number
           status?: string | null
@@ -44,6 +102,7 @@ export type Database = {
         }
         Update: {
           additional_notes?: string | null
+          assigned_ngo_id?: string | null
           created_at?: string | null
           description?: string | null
           dietary_info?: string | null
@@ -51,6 +110,7 @@ export type Database = {
           expiry_date?: string
           food_name?: string
           id?: string
+          matched?: boolean | null
           pickup_address?: string
           quantity?: number
           status?: string | null
@@ -128,6 +188,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      notifications: {
+        Row: {
+          created_at: string | null
+          id: string
+          message: string
+          read: boolean | null
+          related_id: string | null
+          related_to: string | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          message: string
+          read?: boolean | null
+          related_id?: string | null
+          related_to?: string | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          message?: string
+          read?: boolean | null
+          related_id?: string | null
+          related_to?: string | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       profiles: {
         Row: {
@@ -218,12 +311,48 @@ export type Database = {
           },
         ]
       }
+      volunteers: {
+        Row: {
+          available: boolean | null
+          created_at: string | null
+          current_location: string | null
+          id: string
+          max_distance: number | null
+          user_id: string
+        }
+        Insert: {
+          available?: boolean | null
+          created_at?: string | null
+          current_location?: string | null
+          id?: string
+          max_distance?: number | null
+          user_id: string
+        }
+        Update: {
+          available?: boolean | null
+          created_at?: string | null
+          current_location?: string | null
+          id?: string
+          max_distance?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      create_notification: {
+        Args: {
+          user_id: string
+          title: string
+          message: string
+          related_to?: string
+          related_id?: string
+        }
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never

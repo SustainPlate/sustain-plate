@@ -12,6 +12,8 @@ import CreateDonation from "./pages/CreateDonation";
 import NotFound from "./pages/NotFound";
 import AuthGuard from "./components/AuthGuard";
 import Profile from "./pages/Profile";
+import VolunteerRegistration from "./pages/VolunteerRegistration";
+import DeliveryDetails from "./pages/DeliveryDetails";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -53,6 +55,22 @@ const App = () => (
               element={
                 <AuthGuard>
                   <CreateDonation />
+                </AuthGuard>
+              } 
+            />
+            <Route 
+              path="/volunteer" 
+              element={
+                <AuthGuard>
+                  <VolunteerRegistration />
+                </AuthGuard>
+              } 
+            />
+            <Route 
+              path="/delivery/:id" 
+              element={
+                <AuthGuard>
+                  <DeliveryDetails />
                 </AuthGuard>
               } 
             />

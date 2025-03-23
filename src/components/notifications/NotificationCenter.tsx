@@ -12,6 +12,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { useToast } from '@/components/ui/use-toast';
 import { Badge } from '@/components/ui/badge';
+import { useNavigate } from 'react-router-dom';
 
 type Notification = {
   id: string;
@@ -31,35 +32,7 @@ const NotificationCenter: React.FC = () => {
   const [open, setOpen] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
-
-  // For demo purposes, let's create a mock function to simulate notifications
-  const createMockNotifications = () => {
-    if (!user) return [];
-    
-    // Just for demo, we'll create mock data
-    return [
-      {
-        id: '1',
-        user_id: user.id,
-        title: 'Donation Match Found',
-        message: 'Your donation "Canned Goods" has been matched with a nearby NGO.',
-        read: false,
-        created_at: new Date().toISOString(),
-        related_to: 'donation',
-        related_id: '123',
-      },
-      {
-        id: '2',
-        user_id: user.id,
-        title: 'Volunteer Assigned',
-        message: 'A volunteer has been assigned to pick up your food donation.',
-        read: true,
-        created_at: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
-        related_to: 'donation',
-        related_id: '456',
-      },
-    ];
-  };
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (open) {
@@ -77,59 +50,113 @@ const NotificationCenter: React.FC = () => {
     
     setLoading(true);
     try {
-      // In a real implementation, you would fetch from Supabase
-      // const { data, error } = await supabase
-      //   .from('notifications')
-      //   .select('*')
-      //   .eq('user_id', user.id)
-      //   .order('created_at', { ascending: false });
+      const { data, error } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
       
-      // For now, just use mock data
-      const mockData = createMockNotifications();
-      setNotifications(mockData);
-      setUnreadCount(mockData.filter(n => !n.read).length);
-    } catch (error) {
+      if (error) throw error;
+      
+      setNotifications(data || []);
+      setUnreadCount(data ? data.filter(n => !n.read).length : 0);
+    } catch (error: any) {
       console.error('Error fetching notifications:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load notifications: " + error.message,
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
   };
 
   const markAsRead = async (id: string) => {
-    // In a real implementation, you would update the database
-    // const { error } = await supabase
-    //   .from('notifications')
-    //   .update({ read: true })
-    //   .eq('id', id);
-    
-    // Update locally for now
-    setNotifications(prev => 
-      prev.map(notification => 
-        notification.id === id 
-          ? { ...notification, read: true } 
-          : notification
-      )
-    );
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .update({ read: true })
+        .eq('id', id);
+        
+      if (error) throw error;
+      
+      setNotifications(prev => 
+        prev.map(notification => 
+          notification.id === id 
+            ? { ...notification, read: true } 
+            : notification
+        )
+      );
+    } catch (error: any) {
+      console.error('Error marking notification as read:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update notification: " + error.message,
+        variant: "destructive",
+      });
+    }
   };
 
   const markAllAsRead = async () => {
-    // In a real implementation, you would update the database
-    // const { error } = await supabase
-    //   .from('notifications')
-    //   .update({ read: true })
-    //   .eq('user_id', user.id)
-    //   .eq('read', false);
+    if (!user) return;
     
-    // Update locally for now
-    setNotifications(prev => 
-      prev.map(notification => ({ ...notification, read: true }))
-    );
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .update({ read: true })
+        .eq('user_id', user.id)
+        .eq('read', false);
+      
+      if (error) throw error;
+      
+      setNotifications(prev => 
+        prev.map(notification => ({ ...notification, read: true }))
+      );
+      
+      setUnreadCount(0);
+      toast({
+        title: "Notifications marked as read",
+        description: "All notifications have been marked as read.",
+      });
+    } catch (error: any) {
+      console.error('Error marking all notifications as read:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update notifications: " + error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleNotificationClick = (notification: Notification) => {
+    // Mark the notification as read
+    if (!notification.read) {
+      markAsRead(notification.id);
+    }
     
-    setUnreadCount(0);
-    toast({
-      title: "Notifications marked as read",
-      description: "All notifications have been marked as read.",
-    });
+    // Navigate based on related_to and related_id if they exist
+    if (notification.related_to && notification.related_id) {
+      switch (notification.related_to) {
+        case 'donation':
+          // Navigate to donation details
+          // navigate(`/donation/${notification.related_id}`);
+          toast({
+            title: "Coming soon",
+            description: "Donation detail view will be available soon.",
+          });
+          break;
+        case 'delivery':
+          navigate(`/delivery/${notification.related_id}`);
+          break;
+        default:
+          // Do nothing or show a generic toast
+          break;
+      }
+    }
+    
+    // Close the popover
+    setOpen(false);
   };
 
   const formatDate = (dateString: string) => {
@@ -178,7 +205,8 @@ const NotificationCenter: React.FC = () => {
               {notifications.map((notification) => (
                 <div 
                   key={notification.id} 
-                  className={`border-b p-3 ${!notification.read ? 'bg-gray-50' : ''}`}
+                  className={`border-b p-3 ${!notification.read ? 'bg-gray-50' : ''} cursor-pointer hover:bg-gray-100`}
+                  onClick={() => handleNotificationClick(notification)}
                 >
                   <div className="flex justify-between items-start">
                     <div className="flex-1 pr-4">
@@ -191,7 +219,10 @@ const NotificationCenter: React.FC = () => {
                         variant="ghost" 
                         size="icon" 
                         className="h-6 w-6"
-                        onClick={() => markAsRead(notification.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          markAsRead(notification.id);
+                        }}
                       >
                         <Check className="h-4 w-4" />
                       </Button>

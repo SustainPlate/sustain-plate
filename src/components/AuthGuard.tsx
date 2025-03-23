@@ -3,6 +3,7 @@ import React, { ReactNode, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Loader2 } from 'lucide-react';
+import { useToast } from '@/components/ui/use-toast';
 
 interface AuthGuardProps {
   children: ReactNode;
@@ -11,12 +12,17 @@ interface AuthGuardProps {
 const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   useEffect(() => {
     if (!loading && !user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to access this page.",
+      });
       navigate('/auth', { replace: true });
     }
-  }, [user, loading, navigate]);
+  }, [user, loading, navigate, toast]);
 
   if (loading) {
     return (

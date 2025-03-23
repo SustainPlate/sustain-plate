@@ -14,6 +14,10 @@ const AuthButtons: React.FC = () => {
     try {
       await signOut();
       navigate('/');
+      toast({
+        title: "Success",
+        description: "You have been successfully logged out.",
+      });
     } catch (error) {
       console.error('Error signing out:', error);
       toast({

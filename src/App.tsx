@@ -12,7 +12,14 @@ import CreateDonation from "./pages/CreateDonation";
 import NotFound from "./pages/NotFound";
 import AuthGuard from "./components/AuthGuard";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 const App = () => (
   <QueryClientProvider client={queryClient}>

@@ -12,18 +12,27 @@ const Dashboard: React.FC = () => {
   const { profile, loading, refreshProfile } = useAuth();
   const { toast } = useToast();
   const [localLoading, setLocalLoading] = useState(false);
-  const [renderKey, setRenderKey] = useState(0); // Key to force re-render
+  const [renderKey, setRenderKey] = useState(0);
 
-  // Handle manual refresh
-  const handleManualRetry = () => {
+  const handleManualRetry = async () => {
     setLocalLoading(true);
-    refreshProfile().then(() => {
+    try {
+      await refreshProfile();
+      setRenderKey(prev => prev + 1);
+      toast({
+        title: "Success",
+        description: "Your profile has been refreshed."
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to refresh profile. Please try again."
+      });
+    } finally {
       setLocalLoading(false);
-      setRenderKey(prev => prev + 1); // Force re-render on retry
-    });
+    }
   };
 
-  // Show loading state
   if (loading || localLoading) {
     return (
       <div className="pt-24 pb-16 min-h-screen bg-slate-50">
@@ -35,7 +44,6 @@ const Dashboard: React.FC = () => {
     );
   }
 
-  // Handle missing profile case
   if (!profile) {
     return (
       <div className="pt-24 pb-16 min-h-screen bg-slate-50">
@@ -55,7 +63,6 @@ const Dashboard: React.FC = () => {
     );
   }
 
-  // Return appropriate dashboard based on user type
   const renderDashboard = () => {
     console.log('Rendering dashboard for user type:', profile.user_type);
     

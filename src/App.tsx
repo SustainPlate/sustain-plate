@@ -11,6 +11,7 @@ import Dashboard from "./pages/Dashboard";
 import CreateDonation from "./pages/CreateDonation";
 import NotFound from "./pages/NotFound";
 import AuthGuard from "./components/AuthGuard";
+import Profile from "./pages/Profile";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -36,6 +37,14 @@ const App = () => (
               element={
                 <AuthGuard>
                   <Dashboard />
+                </AuthGuard>
+              } 
+            />
+            <Route 
+              path="/profile" 
+              element={
+                <AuthGuard>
+                  <Profile />
                 </AuthGuard>
               } 
             />

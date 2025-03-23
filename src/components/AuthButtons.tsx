@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
+import NotificationCenter from './notifications/NotificationCenter';
 
 const AuthButtons: React.FC = () => {
   const { user, signOut, profile } = useAuth();
@@ -31,6 +32,7 @@ const AuthButtons: React.FC = () => {
   if (user) {
     return (
       <div className="flex items-center gap-4">
+        <NotificationCenter />
         <span className="text-sm hidden md:inline-block">
           Hello, {profile?.full_name || user.email}
         </span>

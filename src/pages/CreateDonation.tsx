@@ -1,22 +1,20 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import CreateDonationForm from '@/components/dashboard/donor/CreateDonationForm';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/components/ui/use-toast';
-import { Loader2, ArrowLeft } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const CreateDonation: React.FC = () => {
-  const { user, profile, loading } = useAuth();
+  const { profile } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Redirect if not logged in
-  React.useEffect(() => {
-    if (!loading && !user) {
-      navigate('/auth');
-    } else if (!loading && profile && profile.user_type !== 'donor') {
+  // Check if user is a donor
+  useEffect(() => {
+    if (profile && profile.user_type !== 'donor') {
       toast({
         title: "Access Denied",
         description: "Only donors can create food donations.",
@@ -24,14 +22,11 @@ const CreateDonation: React.FC = () => {
       });
       navigate('/dashboard');
     }
-  }, [user, profile, loading, navigate, toast]);
+  }, [profile, navigate, toast]);
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center min-h-screen">
-        <Loader2 className="animate-spin h-8 w-8 text-green-600" />
-      </div>
-    );
+  // If not a donor, don't render the form
+  if (profile?.user_type !== 'donor') {
+    return null;
   }
 
   return (

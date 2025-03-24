@@ -113,18 +113,22 @@ const MapView: React.FC<MapViewProps> = ({ locations }) => {
 
   return (
     <div className="h-full w-full">
-      <style jsx>{`
-        .mapboxgl-popup-content {
-          padding: 12px;
-          border-radius: 6px;
-        }
-        .mapboxgl-popup-content h3 {
-          margin: 0 0 8px 0;
-        }
-        .mapboxgl-popup-content p {
-          margin: 4px 0;
-        }
-      `}</style>
+      <div className="mapboxgl-popup-styles">
+        <style>
+          {`
+          .mapboxgl-popup-content {
+            padding: 12px;
+            border-radius: 6px;
+          }
+          .mapboxgl-popup-content h3 {
+            margin: 0 0 8px 0;
+          }
+          .mapboxgl-popup-content p {
+            margin: 4px 0;
+          }
+          `}
+        </style>
+      </div>
       <div ref={mapContainer} className="h-full w-full" />
     </div>
   );

@@ -14,6 +14,7 @@ import AuthGuard from "./components/AuthGuard";
 import Profile from "./pages/Profile";
 import VolunteerRegistration from "./pages/VolunteerRegistration";
 import DeliveryDetails from "./pages/DeliveryDetails";
+import FAQ from "./pages/FAQ";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -34,6 +35,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/faq" element={<FAQ />} />
             <Route 
               path="/dashboard" 
               element={

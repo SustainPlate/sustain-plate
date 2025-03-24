@@ -30,6 +30,9 @@ const NavBar: React.FC = () => {
           <Link to="/#impact" className="text-slate-600 hover:text-green-600 transition-colors">
             Impact
           </Link>
+          <Link to="/faq" className="text-slate-600 hover:text-green-600 transition-colors">
+            FAQ
+          </Link>
           <AuthButtons />
         </div>
         
@@ -71,6 +74,13 @@ const NavBar: React.FC = () => {
                   className="text-xl font-medium hover:text-green-600 transition-colors"
                 >
                   Impact
+                </Link>
+                <Link 
+                  to="/faq" 
+                  onClick={() => setIsOpen(false)}
+                  className="text-xl font-medium hover:text-green-600 transition-colors"
+                >
+                  FAQ
                 </Link>
                 <div className="pt-4">
                   <AuthButtons />

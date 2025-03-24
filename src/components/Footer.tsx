@@ -1,5 +1,6 @@
 
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { Facebook, Twitter, Instagram, Mail, MapPin, Phone } from 'lucide-react';
 
 const Footer: React.FC = () => {
@@ -29,16 +30,19 @@ const Footer: React.FC = () => {
             <h4 className="text-lg font-medium mb-4">Quick Links</h4>
             <ul className="space-y-3">
               <li>
-                <a href="#features" className="text-gray-600 hover:text-sustain-600 transition-colors">Features</a>
+                <Link to="/#features" className="text-gray-600 hover:text-sustain-600 transition-colors">Features</Link>
               </li>
               <li>
-                <a href="#howitworks" className="text-gray-600 hover:text-sustain-600 transition-colors">How It Works</a>
+                <Link to="/#howitworks" className="text-gray-600 hover:text-sustain-600 transition-colors">How It Works</Link>
               </li>
               <li>
-                <a href="#impact" className="text-gray-600 hover:text-sustain-600 transition-colors">Impact</a>
+                <Link to="/#impact" className="text-gray-600 hover:text-sustain-600 transition-colors">Impact</Link>
               </li>
               <li>
-                <a href="#register" className="text-gray-600 hover:text-sustain-600 transition-colors">Register</a>
+                <Link to="/#register" className="text-gray-600 hover:text-sustain-600 transition-colors">Register</Link>
+              </li>
+              <li>
+                <Link to="/faq" className="text-gray-600 hover:text-sustain-600 transition-colors">FAQ</Link>
               </li>
             </ul>
           </div>

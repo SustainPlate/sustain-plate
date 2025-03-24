@@ -18,6 +18,7 @@ import FAQ from "./pages/FAQ";
 import Contact from "./pages/Contact";
 import Blog from "./pages/Blog";
 import BlogPostDetail from "./pages/BlogPost";
+import DonationMap from "./pages/DonationMap";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -42,6 +43,7 @@ const App = () => (
             <Route path="/contact" element={<Contact />} />
             <Route path="/blog" element={<Blog />} />
             <Route path="/blog/:id" element={<BlogPostDetail />} />
+            <Route path="/donation-map" element={<DonationMap />} />
             <Route 
               path="/dashboard" 
               element={

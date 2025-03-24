@@ -33,6 +33,9 @@ const NavBar: React.FC = () => {
           <Link to="/faq" className="text-slate-600 hover:text-green-600 transition-colors">
             FAQ
           </Link>
+          <Link to="/contact" className="text-slate-600 hover:text-green-600 transition-colors">
+            Contact
+          </Link>
           <AuthButtons />
         </div>
         
@@ -81,6 +84,13 @@ const NavBar: React.FC = () => {
                   className="text-xl font-medium hover:text-green-600 transition-colors"
                 >
                   FAQ
+                </Link>
+                <Link 
+                  to="/contact" 
+                  onClick={() => setIsOpen(false)}
+                  className="text-xl font-medium hover:text-green-600 transition-colors"
+                >
+                  Contact
                 </Link>
                 <div className="pt-4">
                   <AuthButtons />

@@ -15,6 +15,7 @@ import Profile from "./pages/Profile";
 import VolunteerRegistration from "./pages/VolunteerRegistration";
 import DeliveryDetails from "./pages/DeliveryDetails";
 import FAQ from "./pages/FAQ";
+import Contact from "./pages/Contact";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -36,6 +37,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/faq" element={<FAQ />} />
+            <Route path="/contact" element={<Contact />} />
             <Route 
               path="/dashboard" 
               element={

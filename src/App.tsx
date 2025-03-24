@@ -16,6 +16,8 @@ import VolunteerRegistration from "./pages/VolunteerRegistration";
 import DeliveryDetails from "./pages/DeliveryDetails";
 import FAQ from "./pages/FAQ";
 import Contact from "./pages/Contact";
+import Blog from "./pages/Blog";
+import BlogPostDetail from "./pages/BlogPost";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -38,6 +40,8 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
             <Route path="/faq" element={<FAQ />} />
             <Route path="/contact" element={<Contact />} />
+            <Route path="/blog" element={<Blog />} />
+            <Route path="/blog/:id" element={<BlogPostDetail />} />
             <Route 
               path="/dashboard" 
               element={

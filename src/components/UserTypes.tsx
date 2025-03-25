@@ -1,6 +1,6 @@
 
 import React, { useEffect, useRef, useState } from 'react';
-import { Store, Building2, HeartHandshake, ShieldCheck } from 'lucide-react';
+import { Store, Building2, HeartHandshake } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface UserTypeCardProps {
@@ -115,10 +115,10 @@ const UserTypes: React.FC = () => {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <UserTypeCard
-            title="Restaurant"
-            description="Donate surplus food from your restaurant and reduce waste while helping communities."
+            title="Food Donor"
+            description="Donate surplus food from hotels, households, hostels, mess facilities and reduce waste while helping communities."
             icon={<Store size={28} />}
             features={[
               "Easy listing of surplus food",
@@ -132,12 +132,12 @@ const UserTypes: React.FC = () => {
 
           <UserTypeCard
             title="NGO"
-            description="Request and receive food donations based on your organization's specific needs."
+            description="Collect and receive food donations based on your organization's specific needs for distribution."
             icon={<Building2 size={28} />}
             features={[
               "Specific food requests",
               "Donation notifications",
-              "Distribution planning",
+              "Collection planning",
               "Beneficiary tracking"
             ]}
             ctaText="Register as NGO"
@@ -147,7 +147,7 @@ const UserTypes: React.FC = () => {
 
           <UserTypeCard
             title="Volunteer"
-            description="Help with food collection and delivery, becoming the vital link in our chain."
+            description="Help with food distribution, becoming the vital link in our chain to those in need."
             icon={<HeartHandshake size={28} />}
             features={[
               "Flexible scheduling",
@@ -157,20 +157,6 @@ const UserTypes: React.FC = () => {
             ]}
             ctaText="Join as Volunteer"
             animationDelay={500}
-          />
-
-          <UserTypeCard
-            title="Corporate"
-            description="Partner with us to donate surplus food from events, cafeterias, and more."
-            icon={<ShieldCheck size={28} />}
-            features={[
-              "Bulk donation management",
-              "CSR reporting metrics",
-              "Employee engagement",
-              "Brand recognition"
-            ]}
-            ctaText="Join as Corporate"
-            animationDelay={700}
           />
         </div>
       </div>

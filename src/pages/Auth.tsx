@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from '@/integrations/supabase/client';
 
 const Auth: React.FC = () => {
+  const location = useLocation();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [email, setEmail] = useState('');
@@ -21,6 +22,9 @@ const Auth: React.FC = () => {
   const [organizationName, setOrganizationName] = useState('');
   const [userType, setUserType] = useState('donor');
   const [loading, setLoading] = useState(false);
+
+  // Get the default tab from URL search params
+  const defaultTab = new URLSearchParams(location.search).get('tab') === 'signup' ? 'signup' : 'signin';
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -105,7 +109,7 @@ const Auth: React.FC = () => {
   return (
     <div className="flex justify-center items-center min-h-screen bg-slate-50 px-4">
       <Card className="w-full max-w-md">
-        <Tabs defaultValue="signin" className="w-full">
+        <Tabs defaultValue={defaultTab} className="w-full">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="signin">Sign In</TabsTrigger>
             <TabsTrigger value="signup">Sign Up</TabsTrigger>

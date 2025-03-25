@@ -23,6 +23,7 @@ const AuthButtons: React.FC = () => {
   const handleSignOut = async () => {
     try {
       await signOut();
+      // After successfully signing out, navigate to the home page
       navigate('/');
       toast({
         title: "Success",

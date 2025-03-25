@@ -20,11 +20,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshCount, setRefreshCount] = useState(0);
   const { toast } = useToast();
+  
+  const MAX_RETRIES = 3;
 
-  const fetchProfile = async (userId: string) => {
+  // Updated profile fetching with retries
+  const fetchProfile = async (userId: string, retryCount = 0) => {
     try {
-      console.log('Fetching profile for user:', userId);
+      console.log(`Fetching profile for user: ${userId} (Attempt ${retryCount + 1}/${MAX_RETRIES + 1})`);
+      
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -34,41 +39,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (error) {
         console.error('Error fetching profile:', error);
         
-        if (error.code === 'PGRST116') {
-          console.log('Profile not found, creating a default profile');
+        // If no rows found and we haven't reached max retries, retry after a delay
+        if (error.code === 'PGRST116' && retryCount < MAX_RETRIES) {
+          console.log(`Profile not found, retrying in ${(retryCount + 1) * 1000}ms...`);
           
-          // Extract user information from metadata if available
-          let userType = 'donor'; // Default to donor
-          let fullName = '';
-          
-          if (user?.user_metadata) {
-            userType = user.user_metadata.user_type || 'donor';
-            fullName = user.user_metadata.full_name || user.user_metadata.name || '';
-          }
-          
-          // Instead of trying to directly insert which can trigger RLS errors,
-          // use an RPC function call or do nothing and wait for the database trigger
-          // The database should have a trigger that creates profiles automatically
-          console.log('Waiting for the database trigger to create the profile');
-          // Wait a moment and try to fetch the profile again
-          setTimeout(async () => {
-            const { data: retryData, error: retryError } = await supabase
-              .from('profiles')
-              .select('*')
-              .eq('id', userId)
-              .single();
-              
-            if (!retryError && retryData) {
-              console.log('Profile created by trigger:', retryData);
-              setProfile(retryData);
-            }
-          }, 1000);
-        } else {
-          toast({
-            title: "Profile Error",
-            description: "Failed to fetch user profile: " + error.message,
-            variant: "destructive",
-          });
+          // Wait with increasing backoff before retrying
+          setTimeout(() => fetchProfile(userId, retryCount + 1), (retryCount + 1) * 1000);
+          return;
+        }
+        
+        if (retryCount >= MAX_RETRIES) {
+          console.error('Max retries reached, unable to fetch profile');
         }
       } else if (data) {
         console.log('Profile fetched successfully:', data);
@@ -91,8 +72,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  // Effect to handle auth state and profile fetching
   useEffect(() => {
     console.log('Initializing authentication');
+    let timeout: NodeJS.Timeout;
+    
     // Get initial session
     const initializeAuth = async () => {
       try {
@@ -121,17 +105,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setSession(session);
         setUser(session?.user ?? null);
         
-        if (session?.user) {
-          await fetchProfile(session.user.id);
-        } else {
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+          if (session?.user) {
+            // Reset the profile when signing in to avoid seeing stale data
+            setProfile(null);
+            await fetchProfile(session.user.id);
+          }
+        } else if (event === 'SIGNED_OUT') {
           setProfile(null);
         }
+        
         setLoading(false);
       }
     );
 
     // Set a timeout to ensure we don't hang in loading state
-    const timeout = setTimeout(() => {
+    timeout = setTimeout(() => {
       if (loading) {
         console.log('Auth initialization timeout reached, forcing loading state to false');
         setLoading(false);
@@ -142,12 +131,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       subscription.unsubscribe();
       clearTimeout(timeout);
     };
-  }, []);
+  }, [refreshCount]); // Add refreshCount dependency to allow force-refreshing the effect
 
   const signOut = async () => {
     try {
       console.log('Signing out user');
       setLoading(true);
+      
+      // Clear profile first to avoid stale data
+      setProfile(null);
+      
       const { error } = await supabase.auth.signOut();
       
       if (error) {
@@ -159,7 +152,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         });
       } else {
         console.log('Sign out successful');
-        setProfile(null);
         toast({
           title: "Signed out",
           description: "You have been successfully signed out.",
@@ -175,6 +167,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Manual refresh trigger
+  const forceRefresh = () => {
+    setRefreshCount(prev => prev + 1);
   };
 
   return (

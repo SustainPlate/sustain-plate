@@ -8,6 +8,7 @@ import { CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from '@/integrations/supabase/client';
+import { Loader2 } from 'lucide-react';
 
 const SignUpForm: React.FC = () => {
   const navigate = useNavigate();
@@ -20,12 +21,16 @@ const SignUpForm: React.FC = () => {
   const [organizationName, setOrganizationName] = useState('');
   const [userType, setUserType] = useState('donor');
   const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setErrorMessage('');
 
     try {
+      console.log('Attempting to sign up with:', email, 'Type:', userType);
+      
       // First, sign up the user
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -34,39 +39,42 @@ const SignUpForm: React.FC = () => {
           data: {
             full_name: fullName,
             user_type: userType,
+            phone: phone || null,
+            address: address || null,
+            organization_name: userType === 'ngo' ? organizationName : null,
           }
         }
       });
 
-      if (error) throw error;
-
-      if (data.user) {
-        try {
-          // Create a profile for the user - this is handled by the trigger now
-          // We'll navigate directly to home without trying to create a profile manually
-          toast({
-            title: "Account created!",
-            description: "You've successfully signed up.",
-          });
-          
-          navigate('/'); // Redirect to home page
-        } catch (profileError: any) {
-          console.error('Profile creation error:', profileError);
-          // Even if profile creation fails, the user has been created
-          // The trigger should handle profile creation, so we proceed
-          toast({
-            title: "Account created!",
-            description: "You've successfully signed up. Your profile will be set up automatically.",
-          });
-          
-          navigate('/'); // Redirect to home page
-        }
+      if (error) {
+        console.error('Sign up error:', error);
+        setErrorMessage(error.message || "An error occurred during signup.");
+        toast({
+          title: "Error",
+          description: error.message || "An error occurred during signup.",
+          variant: "destructive",
+        });
+        return;
       }
+
+      if (!data.user) {
+        throw new Error("No user returned after signup");
+      }
+
+      // The profile will be created automatically by the database trigger
+      toast({
+        title: "Account created!",
+        description: "You've successfully signed up.",
+      });
+      
+      // Redirect to home page - the auth state change will trigger a profile fetch
+      navigate('/');
     } catch (error: any) {
-      console.error('Signup error:', error);
+      console.error('Exception during signup:', error);
+      setErrorMessage(error.message || "An unexpected error occurred.");
       toast({
         title: "Error",
-        description: error.message || "An error occurred during signup.",
+        description: error.message || "An unexpected error occurred.",
         variant: "destructive",
       });
     } finally {
@@ -83,6 +91,12 @@ const SignUpForm: React.FC = () => {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        {errorMessage && (
+          <div className="bg-red-50 p-3 rounded-md border border-red-200 text-red-700 text-sm">
+            {errorMessage}
+          </div>
+        )}
+        
         <div className="space-y-2">
           <Label htmlFor="userType">I am a</Label>
           <Select 
@@ -93,9 +107,9 @@ const SignUpForm: React.FC = () => {
               <SelectValue placeholder="Select user type" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="donor">Food Donor</SelectItem>
-              <SelectItem value="ngo">NGO/Recipient</SelectItem>
-              <SelectItem value="volunteer">Volunteer</SelectItem>
+              <SelectItem value="donor">Food Donor (Restaurants, Hotels, Hostels, etc.)</SelectItem>
+              <SelectItem value="ngo">NGO/Food Collection</SelectItem>
+              <SelectItem value="volunteer">Volunteer/Food Distribution</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -166,7 +180,12 @@ const SignUpForm: React.FC = () => {
       </CardContent>
       <CardFooter>
         <Button type="submit" className="w-full" disabled={loading}>
-          {loading ? "Creating Account..." : "Create Account"}
+          {loading ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Creating Account...
+            </>
+          ) : "Create Account"}
         </Button>
       </CardFooter>
     </form>

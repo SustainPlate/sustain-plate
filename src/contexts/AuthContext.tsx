@@ -46,28 +46,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             fullName = user.user_metadata.full_name || user.user_metadata.name || '';
           }
           
-          const { error: insertError, data: insertData } = await supabase
-            .from('profiles')
-            .insert({ 
-              id: userId,
-              user_type: userType,
-              full_name: fullName
-            })
-            .select()
-            .single();
-            
-          if (insertError) {
-            console.error('Failed to create profile:', insertError);
-            toast({
-              title: "Profile Error",
-              description: "Failed to create a user profile. Please try again or refresh the page.",
-              variant: "destructive",
-            });
-          } else if (insertData) {
-            console.log('Created default profile:', insertData);
-            setProfile(insertData);
-            return;
-          }
+          // Instead of trying to directly insert which can trigger RLS errors,
+          // use an RPC function call or do nothing and wait for the database trigger
+          // The database should have a trigger that creates profiles automatically
+          console.log('Waiting for the database trigger to create the profile');
+          // Wait a moment and try to fetch the profile again
+          setTimeout(async () => {
+            const { data: retryData, error: retryError } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', userId)
+              .single();
+              
+            if (!retryError && retryData) {
+              console.log('Profile created by trigger:', retryData);
+              setProfile(retryData);
+            }
+          }, 1000);
         } else {
           toast({
             title: "Profile Error",

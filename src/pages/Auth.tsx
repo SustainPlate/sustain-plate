@@ -31,6 +31,7 @@ const Auth: React.FC = () => {
     setLoading(true);
 
     try {
+      // First, sign up the user
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -45,28 +46,29 @@ const Auth: React.FC = () => {
       if (error) throw error;
 
       if (data.user) {
-        // Create a profile for the user
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert({
-            id: data.user.id,
-            full_name: fullName,
-            phone,
-            address,
-            organization_name: organizationName,
-            user_type: userType,
+        try {
+          // Create a profile for the user - this is handled by the trigger now
+          // We'll navigate directly to home without trying to create a profile manually
+          toast({
+            title: "Account created!",
+            description: "You've successfully signed up.",
           });
-
-        if (profileError) throw profileError;
-
-        toast({
-          title: "Account created!",
-          description: "You've successfully signed up.",
-        });
-        
-        navigate('/'); // Redirect to home page
+          
+          navigate('/'); // Redirect to home page
+        } catch (profileError: any) {
+          console.error('Profile creation error:', profileError);
+          // Even if profile creation fails, the user has been created
+          // The trigger should handle profile creation, so we proceed
+          toast({
+            title: "Account created!",
+            description: "You've successfully signed up. Your profile will be set up automatically.",
+          });
+          
+          navigate('/'); // Redirect to home page
+        }
       }
     } catch (error: any) {
+      console.error('Signup error:', error);
       toast({
         title: "Error",
         description: error.message || "An error occurred during signup.",

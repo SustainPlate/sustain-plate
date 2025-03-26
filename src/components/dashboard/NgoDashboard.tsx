@@ -59,34 +59,29 @@ const NgoDashboard: React.FC = () => {
       if (error) throw error;
 
       // Count donations by status
-      const { data: statsData, error: statsError } = await supabase
+      // Using separate queries instead of group by since TypeScript doesn't recognize the group method
+      const availableCountQuery = await supabase
         .from('donations')
-        .select('status, count')
-        .eq('status', 'available')
-        .or('status.eq.pending,status.eq.completed')
-        .group('status');
-
-      if (statsError) throw statsError;
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'available');
+        
+      const pendingCountQuery = await supabase
+        .from('donations')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'pending');
+        
+      const completedCountQuery = await supabase
+        .from('donations')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'completed');
 
       setDonations(data as Donation[]);
       
-      // Process stats
-      const statsMap = {
-        available: 0,
-        pending: 0,
-        completed: 0
-      };
-      
-      if (statsData) {
-        statsData.forEach(item => {
-          statsMap[item.status as keyof typeof statsMap] = item.count;
-        });
-      }
-      
+      // Process stats with individual counts
       setStats({
-        available: statsMap.available,
-        reserved: statsMap.pending,
-        completed: statsMap.completed
+        available: availableCountQuery.count || 0,
+        reserved: pendingCountQuery.count || 0,
+        completed: completedCountQuery.count || 0
       });
     } catch (error: any) {
       console.error('Error fetching donations:', error);

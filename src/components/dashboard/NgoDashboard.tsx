@@ -3,42 +3,12 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
-import { ShoppingBag, Search, Loader2, Calendar, Package } from 'lucide-react';
+import { Search, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { format } from 'date-fns';
-import { Skeleton } from '@/components/ui/skeleton';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-
-type Donation = {
-  id: string;
-  food_name: string;
-  quantity: number;
-  unit: string;
-  expiry_date: string;
-  status: string;
-  created_at: string;
-  pickup_address: string;
-  description: string | null;
-};
+import StatsCards from './ngo/StatsCards';
+import DonationTable, { Donation } from './ngo/DonationTable';
+import ReservationDialog from './ngo/ReservationDialog';
 
 const NgoDashboard: React.FC = () => {
   const { profile, user } = useAuth();
@@ -106,27 +76,6 @@ const NgoDashboard: React.FC = () => {
       });
     } finally {
       setLoading(false);
-    }
-  };
-
-  // Helper function to format the date
-  const formatDate = (dateString: string) => {
-    return format(new Date(dateString), 'MMM d, yyyy');
-  };
-
-  // Helper function to get badge color based on status
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'available':
-        return <Badge className="bg-green-500">Available</Badge>;
-      case 'pending':
-        return <Badge className="bg-yellow-500">Pending Pickup</Badge>;
-      case 'in_transit':
-        return <Badge className="bg-blue-500">In Transit</Badge>;
-      case 'completed':
-        return <Badge className="bg-gray-500">Completed</Badge>;
-      default:
-        return <Badge>{status}</Badge>;
     }
   };
 
@@ -203,158 +152,33 @@ const NgoDashboard: React.FC = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle>Available Donations</CardTitle>
-            <CardDescription>Donations ready to be claimed</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <Skeleton className="h-8 w-16" />
-            ) : (
-              <div className="text-3xl font-bold">{stats.available}</div>
-            )}
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle>Reserved Items</CardTitle>
-            <CardDescription>Donations you've reserved</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <Skeleton className="h-8 w-16" />
-            ) : (
-              <div className="text-3xl font-bold">{stats.reserved}</div>
-            )}
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle>Completed Donations</CardTitle>
-            <CardDescription>Successfully received items</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <Skeleton className="h-8 w-16" />
-            ) : (
-              <div className="text-3xl font-bold">{stats.completed}</div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+      {/* Stats Cards */}
+      <StatsCards stats={stats} loading={loading} />
 
+      {/* Available Donations Table */}
       <Card>
         <CardHeader>
           <CardTitle>Available Donations</CardTitle>
           <CardDescription>Browse and reserve available food donations</CardDescription>
         </CardHeader>
         <CardContent>
-          {loading ? (
-            <div className="space-y-4">
-              <Skeleton className="h-10 w-full" />
-              <Skeleton className="h-24 w-full" />
-              <Skeleton className="h-24 w-full" />
-            </div>
-          ) : donations.length > 0 ? (
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Food Item</TableHead>
-                    <TableHead>Quantity</TableHead>
-                    <TableHead>Expiry Date</TableHead>
-                    <TableHead>Pickup Address</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {donations.map((donation) => (
-                    <TableRow key={donation.id}>
-                      <TableCell className="font-medium">{donation.food_name}</TableCell>
-                      <TableCell>
-                        {donation.quantity} {donation.unit}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center">
-                          <Calendar className="mr-2 h-4 w-4 text-gray-500" />
-                          {formatDate(donation.expiry_date)}
-                        </div>
-                      </TableCell>
-                      <TableCell className="max-w-xs truncate" title={donation.pickup_address}>
-                        {donation.pickup_address}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => openReservationConfirm(donation)}
-                          disabled={reservingDonation === donation.id}
-                        >
-                          {reservingDonation === donation.id ? (
-                            <>
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              Reserving...
-                            </>
-                          ) : (
-                            'Reserve'
-                          )}
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          ) : (
-            <div className="text-center py-8">
-              <Package className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-              <h3 className="text-lg font-medium">No donations available</h3>
-              <p className="text-sm text-gray-500 mt-1">
-                There are currently no food donations available. Please check back later.
-              </p>
-            </div>
-          )}
+          <DonationTable 
+            donations={donations} 
+            loading={loading} 
+            reservingDonation={reservingDonation}
+            onReserve={openReservationConfirm}
+          />
         </CardContent>
       </Card>
 
-      {/* Confirmation Dialog */}
-      <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Confirm Reservation</AlertDialogTitle>
-            <AlertDialogDescription>
-              {selectedDonation && (
-                <>
-                  <p>
-                    Are you sure you want to reserve {selectedDonation.quantity} {selectedDonation.unit} of {selectedDonation.food_name}?
-                  </p>
-                  <p className="mt-2">
-                    By reserving this donation, you commit to arranging pickup from the specified address.
-                  </p>
-                </>
-              )}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={reservationLoading}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => selectedDonation && handleReserveDonation(selectedDonation.id)}
-              disabled={reservationLoading}
-            >
-              {reservationLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Reserving...
-                </>
-              ) : (
-                'Confirm Reservation'
-              )}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* Reservation Confirmation Dialog */}
+      <ReservationDialog
+        open={showConfirmDialog}
+        onOpenChange={setShowConfirmDialog}
+        selectedDonation={selectedDonation}
+        reservationLoading={reservationLoading}
+        onConfirm={handleReserveDonation}
+      />
     </div>
   );
 };

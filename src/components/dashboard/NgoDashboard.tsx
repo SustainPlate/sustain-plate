@@ -9,6 +9,8 @@ import { useToast } from '@/components/ui/use-toast';
 import StatsCards from './ngo/StatsCards';
 import DonationTable, { Donation } from './ngo/DonationTable';
 import ReservationDialog from './ngo/ReservationDialog';
+import MyReservations from './ngo/MyReservations';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const NgoDashboard: React.FC = () => {
   const { profile, user } = useAuth();
@@ -155,21 +157,42 @@ const NgoDashboard: React.FC = () => {
       {/* Stats Cards */}
       <StatsCards stats={stats} loading={loading} />
 
-      {/* Available Donations Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Available Donations</CardTitle>
-          <CardDescription>Browse and reserve available food donations</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <DonationTable 
-            donations={donations} 
-            loading={loading} 
-            reservingDonation={reservingDonation}
-            onReserve={openReservationConfirm}
-          />
-        </CardContent>
-      </Card>
+      {/* Tabs for Available Donations and My Reservations */}
+      <Tabs defaultValue="available" className="w-full">
+        <TabsList className="mb-4">
+          <TabsTrigger value="available">Available Donations</TabsTrigger>
+          <TabsTrigger value="reservations">My Reservations</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="available">
+          <Card>
+            <CardHeader>
+              <CardTitle>Available Donations</CardTitle>
+              <CardDescription>Browse and reserve available food donations</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <DonationTable 
+                donations={donations} 
+                loading={loading} 
+                reservingDonation={reservingDonation}
+                onReserve={openReservationConfirm}
+              />
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="reservations">
+          <Card>
+            <CardHeader>
+              <CardTitle>My Reservations</CardTitle>
+              <CardDescription>Manage your reserved food donations</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <MyReservations />
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
 
       {/* Reservation Confirmation Dialog */}
       <ReservationDialog

@@ -87,6 +87,27 @@ const DonationsList: React.FC = () => {
     try {
       setDeleting(id);
       
+      // First check if the donation is reserved or completed
+      const { data: donationData, error: fetchError } = await supabase
+        .from('donations')
+        .select('status')
+        .eq('id', id)
+        .single();
+        
+      if (fetchError) throw fetchError;
+      
+      if (donationData.status !== 'available') {
+        toast({
+          title: 'Cannot Delete',
+          description: 'This donation cannot be deleted because it has already been ' + 
+                      (donationData.status === 'completed' ? 'completed' : 'reserved'),
+          variant: 'destructive',
+        });
+        setDeleting(null);
+        return;
+      }
+      
+      // If available, proceed with deletion
       const { error } = await supabase
         .from('donations')
         .delete()
@@ -184,7 +205,7 @@ const DonationsList: React.FC = () => {
                 <TableCell>{getStatusBadge(donation.status)}</TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-2">
-                    {(donation.status === 'available') && (
+                    {donation.status === 'available' && (
                       <>
                         <Button 
                           variant="outline" 

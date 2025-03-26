@@ -72,7 +72,7 @@ const AuthButtons: React.FC = () => {
               <UserCog className="mr-2 h-4 w-4" />
               Edit Profile
             </DropdownMenuItem>
-            {profile && !profile.user_type.includes('volunteer') && (
+            {profile && profile.user_type === 'donor' && (
               <DropdownMenuItem onClick={() => navigate('/volunteer')}>
                 <CarFront className="mr-2 h-4 w-4" />
                 Become a Volunteer

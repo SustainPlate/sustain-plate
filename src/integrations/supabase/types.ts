@@ -77,6 +77,8 @@ export type Database = {
           matched: boolean | null
           pickup_address: string
           quantity: number
+          reserved_at: string | null
+          reserved_by: string | null
           status: string | null
           temperature_requirements: string | null
           unit: string
@@ -95,6 +97,8 @@ export type Database = {
           matched?: boolean | null
           pickup_address: string
           quantity: number
+          reserved_at?: string | null
+          reserved_by?: string | null
           status?: string | null
           temperature_requirements?: string | null
           unit: string
@@ -113,6 +117,8 @@ export type Database = {
           matched?: boolean | null
           pickup_address?: string
           quantity?: number
+          reserved_at?: string | null
+          reserved_by?: string | null
           status?: string | null
           temperature_requirements?: string | null
           unit?: string
@@ -352,6 +358,13 @@ export type Database = {
           related_id?: string
         }
         Returns: string
+      }
+      reserve_donation: {
+        Args: {
+          donation_id: string
+          ngo_id: string
+        }
+        Returns: boolean
       }
     }
     Enums: {

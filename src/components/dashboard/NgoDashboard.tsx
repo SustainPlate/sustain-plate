@@ -17,6 +17,16 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 type Donation = {
   id: string;
@@ -31,9 +41,13 @@ type Donation = {
 };
 
 const NgoDashboard: React.FC = () => {
-  const { profile } = useAuth();
+  const { profile, user } = useAuth();
   const [donations, setDonations] = useState<Donation[]>([]);
   const [loading, setLoading] = useState(true);
+  const [reservingDonation, setReservingDonation] = useState<string | null>(null);
+  const [reservationLoading, setReservationLoading] = useState(false);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [selectedDonation, setSelectedDonation] = useState<Donation | null>(null);
   const [stats, setStats] = useState({
     available: 0,
     reserved: 0,
@@ -116,12 +130,60 @@ const NgoDashboard: React.FC = () => {
     }
   };
 
+  const openReservationConfirm = (donation: Donation) => {
+    setSelectedDonation(donation);
+    setShowConfirmDialog(true);
+  };
+
   const handleReserveDonation = async (donationId: string) => {
-    // To be implemented in future
-    toast({
-      title: "Coming Soon",
-      description: "Reservation functionality will be available soon.",
-    });
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "You need to be logged in to reserve donations.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setReservingDonation(donationId);
+      setReservationLoading(true);
+
+      // Call the Supabase function to reserve the donation
+      const { data, error } = await supabase.rpc('reserve_donation', {
+        donation_id: donationId,
+        ngo_id: user.id
+      });
+
+      if (error) throw error;
+
+      if (data) {
+        // Refresh the donations list
+        await fetchAvailableDonations();
+        
+        toast({
+          title: "Donation Reserved",
+          description: "You have successfully reserved this donation. Please arrange for pickup.",
+        });
+      } else {
+        toast({
+          title: "Reservation Failed",
+          description: "This donation may no longer be available.",
+          variant: "destructive",
+        });
+      }
+    } catch (error: any) {
+      console.error('Error reserving donation:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to reserve donation. ' + error.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setReservingDonation(null);
+      setReservationLoading(false);
+      setShowConfirmDialog(false);
+    }
   };
 
   return (
@@ -227,9 +289,17 @@ const NgoDashboard: React.FC = () => {
                         <Button 
                           variant="outline" 
                           size="sm"
-                          onClick={() => handleReserveDonation(donation.id)}
+                          onClick={() => openReservationConfirm(donation)}
+                          disabled={reservingDonation === donation.id}
                         >
-                          Reserve
+                          {reservingDonation === donation.id ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Reserving...
+                            </>
+                          ) : (
+                            'Reserve'
+                          )}
                         </Button>
                       </TableCell>
                     </TableRow>
@@ -248,6 +318,43 @@ const NgoDashboard: React.FC = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Confirmation Dialog */}
+      <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Reservation</AlertDialogTitle>
+            <AlertDialogDescription>
+              {selectedDonation && (
+                <>
+                  <p>
+                    Are you sure you want to reserve {selectedDonation.quantity} {selectedDonation.unit} of {selectedDonation.food_name}?
+                  </p>
+                  <p className="mt-2">
+                    By reserving this donation, you commit to arranging pickup from the specified address.
+                  </p>
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={reservationLoading}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => selectedDonation && handleReserveDonation(selectedDonation.id)}
+              disabled={reservationLoading}
+            >
+              {reservationLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Reserving...
+                </>
+              ) : (
+                'Confirm Reservation'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

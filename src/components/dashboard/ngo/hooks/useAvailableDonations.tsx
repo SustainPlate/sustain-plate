@@ -96,7 +96,7 @@ export const useAvailableDonations = () => {
         return;
       }
 
-      // Direct update of status to avoid constraint violation
+      // Use the RPC function to update donation status
       const { error } = await supabase.rpc('update_donation_status', {
         donation_id: donationId,
         new_status: 'pending',

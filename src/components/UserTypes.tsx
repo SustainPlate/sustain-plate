@@ -7,7 +7,7 @@ import { Link } from 'react-router-dom';
 
 const UserTypes: React.FC = () => {
   return (
-    <section className="py-24 bg-slate-50">
+    <section className="py-24 bg-slate-50" id="user-types">
       <div className="container px-4 md:px-6">
         <div className="flex flex-col items-center justify-center space-y-4 text-center">
           <div className="space-y-2">
@@ -42,7 +42,7 @@ const UserTypes: React.FC = () => {
               </Button>
             </CardFooter>
           </Card>
-          <Card className="relative overflow-hidden bg-green-50 border-green-200">
+          <Card className="relative overflow-hidden">
             <CardHeader>
               <div className="flex items-center gap-2">
                 <Building2 className="h-6 w-6 text-green-600" />

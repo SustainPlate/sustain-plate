@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -35,7 +34,6 @@ const NgoDashboard: React.FC = () => {
     try {
       setLoading(true);
       
-      // Get all available donations
       const { data, error } = await supabase
         .from('donations')
         .select('*')
@@ -44,8 +42,6 @@ const NgoDashboard: React.FC = () => {
 
       if (error) throw error;
 
-      // Count donations by status
-      // Using separate queries instead of group by since TypeScript doesn't recognize the group method
       const availableCountQuery = await supabase
         .from('donations')
         .select('*', { count: 'exact', head: true })
@@ -63,7 +59,6 @@ const NgoDashboard: React.FC = () => {
 
       setDonations(data as Donation[]);
       
-      // Process stats with individual counts
       setStats({
         available: availableCountQuery.count || 0,
         reserved: pendingCountQuery.count || 0,
@@ -100,7 +95,6 @@ const NgoDashboard: React.FC = () => {
       setReservingDonation(donationId);
       setReservationLoading(true);
 
-      // First check the donation status to make sure it's still available
       const { data: donationData, error: donationError } = await supabase
         .from('donations')
         .select('status')
@@ -118,8 +112,6 @@ const NgoDashboard: React.FC = () => {
         return;
       }
 
-      // Make a direct update instead of using the RPC function
-      // This helps avoid the status check constraint error
       const { error } = await supabase
         .from('donations')
         .update({
@@ -128,14 +120,13 @@ const NgoDashboard: React.FC = () => {
           reserved_at: new Date().toISOString()
         })
         .eq('id', donationId)
-        .eq('status', 'available'); // Make sure it's still available
+        .eq('status', 'available');
 
       if (error) {
         console.error('Reservation error:', error);
         throw new Error(`Failed to reserve donation: ${error.message}`);
       }
 
-      // Create notification for the donor
       const { data: donationInfo } = await supabase
         .from('donations')
         .select('donor_id, food_name')
@@ -152,7 +143,6 @@ const NgoDashboard: React.FC = () => {
         });
       }
       
-      // Refresh the donations list
       await fetchAvailableDonations();
       
       toast({
@@ -190,10 +180,8 @@ const NgoDashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* Stats Cards */}
       <StatsCards stats={stats} loading={loading} />
 
-      {/* Tabs for Available Donations and My Reservations */}
       <Tabs defaultValue="available" className="w-full">
         <TabsList className="mb-4">
           <TabsTrigger value="available">Available Donations</TabsTrigger>
@@ -230,7 +218,6 @@ const NgoDashboard: React.FC = () => {
         </TabsContent>
       </Tabs>
 
-      {/* Reservation Confirmation Dialog */}
       <ReservationDialog
         open={showConfirmDialog}
         onOpenChange={setShowConfirmDialog}

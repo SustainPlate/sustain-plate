@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -74,7 +75,8 @@ const SignUpForm: React.FC<SignUpFormProps> = ({ defaultUserType = 'donor' }) =>
         description: "You've successfully signed up.",
       });
       
-      navigate('/');
+      // Direct to dashboard after signup
+      navigate('/dashboard');
     } catch (error: any) {
       console.error('Exception during signup:', error);
       setErrorMessage(error.message || "An unexpected error occurred.");

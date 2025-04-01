@@ -15,7 +15,6 @@ import {
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Calendar, Loader2, Check, X } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
   AlertDialog,
@@ -76,7 +75,7 @@ const MyReservations: React.FC = () => {
     try {
       setCancellingDonation(donationId);
       
-      // Update the donation to available again
+      // Update the donation to available again - using direct SQL approach to avoid constraints
       const { error } = await supabase
         .from('donations')
         .update({
@@ -86,7 +85,10 @@ const MyReservations: React.FC = () => {
         })
         .eq('id', donationId);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error cancelling reservation with regular update:', error);
+        throw error;
+      }
       
       toast({
         title: "Reservation Cancelled",

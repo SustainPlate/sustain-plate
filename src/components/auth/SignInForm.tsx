@@ -49,7 +49,7 @@ const SignInForm: React.FC = () => {
         description: "You've successfully logged in.",
       });
       
-      // Redirect to dashboard instead of home
+      // Redirect to dashboard
       navigate('/dashboard');
     } catch (error: any) {
       console.error('Exception during sign in:', error);

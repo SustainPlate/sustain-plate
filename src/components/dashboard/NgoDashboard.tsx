@@ -100,6 +100,24 @@ const NgoDashboard: React.FC = () => {
       setReservingDonation(donationId);
       setReservationLoading(true);
 
+      // First check the donation status to make sure it's still available
+      const { data: donationData, error: donationError } = await supabase
+        .from('donations')
+        .select('status')
+        .eq('id', donationId)
+        .single();
+
+      if (donationError) throw donationError;
+      
+      if (donationData.status !== 'available') {
+        toast({
+          title: "Donation Unavailable",
+          description: "This donation is no longer available for reservation.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       // Call the Supabase function to reserve the donation
       const { data, error } = await supabase.rpc('reserve_donation', {
         donation_id: donationId,

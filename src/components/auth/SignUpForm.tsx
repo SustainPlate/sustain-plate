@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,7 +9,11 @@ import { useToast } from "@/components/ui/use-toast";
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2 } from 'lucide-react';
 
-const SignUpForm: React.FC = () => {
+interface SignUpFormProps {
+  defaultUserType?: string;
+}
+
+const SignUpForm: React.FC<SignUpFormProps> = ({ defaultUserType = 'donor' }) => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [email, setEmail] = useState('');
@@ -19,9 +22,15 @@ const SignUpForm: React.FC = () => {
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
   const [organizationName, setOrganizationName] = useState('');
-  const [userType, setUserType] = useState('donor');
+  const [userType, setUserType] = useState(defaultUserType);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+
+  useEffect(() => {
+    if (defaultUserType) {
+      setUserType(defaultUserType);
+    }
+  }, [defaultUserType]);
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,7 +40,6 @@ const SignUpForm: React.FC = () => {
     try {
       console.log('Attempting to sign up with:', email, 'Type:', userType);
       
-      // First, sign up the user
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -61,13 +69,11 @@ const SignUpForm: React.FC = () => {
         throw new Error("No user returned after signup");
       }
 
-      // The profile will be created automatically by the database trigger
       toast({
         title: "Account created!",
         description: "You've successfully signed up.",
       });
       
-      // Redirect to home page - the auth state change will trigger a profile fetch
       navigate('/');
     } catch (error: any) {
       console.error('Exception during signup:', error);

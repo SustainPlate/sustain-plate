@@ -11,6 +11,9 @@ const Auth: React.FC = () => {
   
   // Get the default tab from URL search params
   const defaultTab = new URLSearchParams(location.search).get('tab') === 'signup' ? 'signup' : 'signin';
+  
+  // Get the default user type from URL search params
+  const userType = new URLSearchParams(location.search).get('userType') || '';
 
   return (
     <div className="flex justify-center items-center min-h-screen bg-slate-50 px-4">
@@ -26,7 +29,7 @@ const Auth: React.FC = () => {
           </TabsContent>
           
           <TabsContent value="signup">
-            <SignUpForm />
+            <SignUpForm defaultUserType={userType} />
           </TabsContent>
         </Tabs>
       </Card>

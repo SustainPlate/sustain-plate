@@ -1,163 +1,95 @@
 
-import React, { useEffect, useRef, useState } from 'react';
-import { Store, Building2, HeartHandshake } from 'lucide-react';
-import { cn } from '@/lib/utils';
-
-interface UserTypeCardProps {
-  title: string;
-  description: string;
-  icon: React.ReactNode;
-  features: string[];
-  ctaText: string;
-  primary?: boolean;
-  animationDelay: number;
-}
-
-const UserTypeCard: React.FC<UserTypeCardProps> = ({ 
-  title, 
-  description, 
-  icon, 
-  features, 
-  ctaText, 
-  primary = false,
-  animationDelay
-}) => {
-  return (
-    <div 
-      className={cn(
-        'rounded-xl p-8 transition-all duration-500 translate-y-0 hover:-translate-y-2',
-        primary 
-          ? 'bg-gradient-to-br from-sustain-600 to-sustain-700 text-white shadow-elevated' 
-          : 'bg-white border border-gray-100 shadow-subtle',
-        `animate-fade-up`
-      )}
-      style={{ animationDelay: `${animationDelay}ms` }}
-    >
-      <div 
-        className={cn(
-          'rounded-full w-14 h-14 flex items-center justify-center mb-5',
-          primary ? 'bg-white/20' : 'bg-sustain-100'
-        )}
-      >
-        <div className={primary ? 'text-white' : 'text-sustain-600'}>{icon}</div>
-      </div>
-      
-      <h3 className="text-2xl font-medium mb-3">{title}</h3>
-      <p className={cn("mb-6", primary ? 'text-white/90' : 'text-gray-600')}>
-        {description}
-      </p>
-      
-      <ul className="space-y-3 mb-8">
-        {features.map((feature, index) => (
-          <li key={index} className="flex items-start">
-            <div className={cn("mr-3 mt-1", primary ? 'text-warmth-300' : 'text-sustain-500')}>
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="20 6 9 17 4 12"></polyline>
-              </svg>
-            </div>
-            <span className={primary ? 'text-white/90' : 'text-gray-600'}>{feature}</span>
-          </li>
-        ))}
-      </ul>
-      
-      <button 
-        className={cn(
-          'w-full py-3 rounded-md transition-all duration-300',
-          primary 
-            ? 'bg-white text-sustain-700 hover:bg-gray-100' 
-            : 'bg-sustain-500 text-white hover:bg-sustain-600'
-        )}
-      >
-        {ctaText}
-      </button>
-    </div>
-  );
-};
+import React from 'react';
+import { Building2, Users, Utensils } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Link } from 'react-router-dom';
 
 const UserTypes: React.FC = () => {
-  const [isVisible, setIsVisible] = useState(false);
-  const sectionRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting) {
-          setIsVisible(true);
-          observer.disconnect();
-        }
-      },
-      { threshold: 0.1 }
-    );
-
-    if (sectionRef.current) {
-      observer.observe(sectionRef.current);
-    }
-
-    return () => {
-      if (sectionRef.current) {
-        observer.unobserve(sectionRef.current);
-      }
-    };
-  }, []);
-
   return (
-    <section 
-      id="register" 
-      className="py-20 bg-gray-50" 
-      ref={sectionRef}
-    >
-      <div className="container mx-auto px-6">
-        <div className="text-center mb-16">
-          <div className="chip mb-3">Join Our Community</div>
-          <h2 className="text-gradient mb-4">Choose Your Role</h2>
-          <p className="max-w-2xl mx-auto text-gray-600 text-lg">
-            Select the role that best fits your organization and start making a difference today
-          </p>
+    <section className="py-24 bg-slate-50">
+      <div className="container px-4 md:px-6">
+        <div className="flex flex-col items-center justify-center space-y-4 text-center">
+          <div className="space-y-2">
+            <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl">Who Can Use SustainPlate?</h2>
+            <p className="max-w-[900px] text-gray-500 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
+              Our platform is designed to connect different stakeholders in food waste reduction.
+            </p>
+          </div>
         </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <UserTypeCard
-            title="Food Donor"
-            description="Donate surplus food from hotels, households, hostels, mess facilities and reduce waste while helping communities."
-            icon={<Store size={28} />}
-            features={[
-              "Easy listing of surplus food",
-              "Flexible pickup scheduling",
-              "Tax deduction tracking",
-              "Impact reporting"
-            ]}
-            ctaText="Register as Donor"
-            animationDelay={100}
-          />
-
-          <UserTypeCard
-            title="NGO"
-            description="Collect and receive food donations based on your organization's specific needs for distribution."
-            icon={<Building2 size={28} />}
-            features={[
-              "Specific food requests",
-              "Donation notifications",
-              "Collection planning",
-              "Beneficiary tracking"
-            ]}
-            ctaText="Register as NGO"
-            primary
-            animationDelay={300}
-          />
-
-          <UserTypeCard
-            title="Volunteer"
-            description="Help with food distribution, becoming the vital link in our chain to those in need."
-            icon={<HeartHandshake size={28} />}
-            features={[
-              "Flexible scheduling",
-              "Route optimization",
-              "Contactless handovers",
-              "Community recognition"
-            ]}
-            ctaText="Join as Volunteer"
-            animationDelay={500}
-          />
+        <div className="mx-auto grid max-w-5xl grid-cols-1 gap-6 md:grid-cols-3 lg:gap-12 mt-12">
+          <Card className="relative overflow-hidden">
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Utensils className="h-6 w-6 text-primary" />
+                <CardTitle>Donors</CardTitle>
+              </div>
+              <CardDescription>
+                Restaurants, hotels, schools, and individuals with excess food to share.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="mt-2">
+              <ul className="list-disc list-inside space-y-2 text-sm">
+                <li>Create food donation listings</li>
+                <li>Connect with local NGOs and volunteers</li>
+                <li>Track your impact in reducing food waste</li>
+                <li>Receive tax benefits for donations</li>
+              </ul>
+            </CardContent>
+            <CardFooter>
+              <Button className="w-full" asChild>
+                <Link to="/auth?tab=signup&userType=donor">Register as Donor</Link>
+              </Button>
+            </CardFooter>
+          </Card>
+          <Card className="relative overflow-hidden">
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Building2 className="h-6 w-6 text-primary" />
+                <CardTitle>NGOs</CardTitle>
+              </div>
+              <CardDescription>
+                Non-profit organizations focused on food collection and distribution.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="mt-2">
+              <ul className="list-disc list-inside space-y-2 text-sm">
+                <li>Find available food donations nearby</li>
+                <li>Reserve and collect food items</li>
+                <li>Manage donation pickup schedules</li>
+                <li>Track impact and distribution metrics</li>
+              </ul>
+            </CardContent>
+            <CardFooter>
+              <Button className="w-full" asChild>
+                <Link to="/auth?tab=signup&userType=ngo">Register as NGO</Link>
+              </Button>
+            </CardFooter>
+          </Card>
+          <Card className="relative overflow-hidden">
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Users className="h-6 w-6 text-primary" />
+                <CardTitle>Volunteers</CardTitle>
+              </div>
+              <CardDescription>
+                Individuals willing to help with food pickup and delivery.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="mt-2">
+              <ul className="list-disc list-inside space-y-2 text-sm">
+                <li>Find volunteer opportunities near you</li>
+                <li>Help transport food from donors to NGOs</li>
+                <li>Set your availability and preferred radius</li>
+                <li>Track your contribution to your community</li>
+              </ul>
+            </CardContent>
+            <CardFooter>
+              <Button className="w-full" asChild>
+                <Link to="/auth?tab=signup&userType=volunteer">Register as Volunteer</Link>
+              </Button>
+            </CardFooter>
+          </Card>
         </div>
       </div>
     </section>

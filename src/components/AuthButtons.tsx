@@ -26,7 +26,13 @@ const AuthButtons: React.FC = () => {
       setIsSigningOut(true);
       await signOut();
       // After successfully signing out, navigate to the home page
-      navigate('/');
+      navigate('/', { replace: true });
+      
+      // Show success toast
+      toast({
+        title: "Signed out successfully",
+        description: "You have been logged out of your account.",
+      });
     } catch (error) {
       console.error('Error signing out:', error);
       toast({

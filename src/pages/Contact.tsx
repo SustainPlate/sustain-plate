@@ -3,7 +3,7 @@ import React from 'react';
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
-import { Mail, MapPin } from 'lucide-react';
+import { Mail, MapPin, Phone } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 
 import NavBar from '@/components/NavBar';
@@ -176,7 +176,7 @@ const Contact: React.FC = () => {
                     <MapPin className="w-5 h-5 text-green-600 mt-1 mr-3" />
                     <div>
                       <h4 className="font-medium">Address</h4>
-                      <p className="text-gray-600">Thapar Institute of Engineering and Technology, Patiala</p>
+                      <p className="text-gray-600">123 Green Street, Sustainable City, SC 12345</p>
                     </div>
                   </div>
                   
@@ -185,10 +185,23 @@ const Contact: React.FC = () => {
                     <div>
                       <h4 className="font-medium">Email</h4>
                       <a 
-                        href="mailto:plate.sustain@gmail.com" 
+                        href="mailto:info@sustainplate.com" 
                         className="text-gray-600 hover:text-green-600 transition-colors"
                       >
-                        plate.sustain@gmail.com
+                        info@sustainplate.com
+                      </a>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start">
+                    <Phone className="w-5 h-5 text-green-600 mt-1 mr-3" />
+                    <div>
+                      <h4 className="font-medium">Phone</h4>
+                      <a 
+                        href="tel:+1234567890" 
+                        className="text-gray-600 hover:text-green-600 transition-colors"
+                      >
+                        (123) 456-7890
                       </a>
                     </div>
                   </div>

@@ -23,9 +23,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [refreshCount, setRefreshCount] = useState(0);
   const { toast } = useToast();
   
-  const MAX_RETRIES = 5; // Increased retries
+  const MAX_RETRIES = 3;
 
-  // Updated profile fetching with retries and better error handling
+  // Updated profile fetching with retries
   const fetchProfile = async (userId: string, retryCount = 0) => {
     try {
       console.log(`Fetching profile for user: ${userId} (Attempt ${retryCount + 1}/${MAX_RETRIES + 1})`);
@@ -50,7 +50,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         
         if (retryCount >= MAX_RETRIES) {
           console.error('Max retries reached, unable to fetch profile');
-          // We could consider creating a default profile here if needed
         }
       } else if (data) {
         console.log('Profile fetched successfully:', data);
@@ -58,10 +57,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return;
       } else {
         console.warn('No profile found for user:', userId);
-        // Handle case when no profile exists but we got no error (rare)
-        if (retryCount < MAX_RETRIES) {
-          setTimeout(() => fetchProfile(userId, retryCount + 1), (retryCount + 1) * 1000);
-        }
       }
     } catch (error) {
       console.error('Exception fetching profile:', error);
@@ -130,7 +125,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         console.log('Auth initialization timeout reached, forcing loading state to false');
         setLoading(false);
       }
-    }, 8000); // Increased timeout
+    }, 5000);
 
     return () => {
       subscription.unsubscribe();

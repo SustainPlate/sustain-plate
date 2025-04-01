@@ -27,9 +27,6 @@ const NavBar: React.FC = () => {
           <Link to="/#user-types" className="text-slate-600 hover:text-green-600 transition-colors">
             Get Started
           </Link>
-          <Link to="/blog" className="text-slate-600 hover:text-green-600 transition-colors">
-            Blog
-          </Link>
           <Link to="/#impact" className="text-slate-600 hover:text-green-600 transition-colors">
             Impact
           </Link>
@@ -73,13 +70,6 @@ const NavBar: React.FC = () => {
                   className="text-xl font-medium hover:text-green-600 transition-colors"
                 >
                   Get Started
-                </Link>
-                <Link 
-                  to="/blog" 
-                  onClick={() => setIsOpen(false)}
-                  className="text-xl font-medium hover:text-green-600 transition-colors"
-                >
-                  Blog
                 </Link>
                 <Link 
                   to="/#impact" 

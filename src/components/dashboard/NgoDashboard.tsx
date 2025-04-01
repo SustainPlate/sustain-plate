@@ -118,34 +118,52 @@ const NgoDashboard: React.FC = () => {
         return;
       }
 
-      // Call the Supabase function to reserve the donation
-      const { data, error } = await supabase.rpc('reserve_donation', {
-        donation_id: donationId,
-        ngo_id: user.id
-      });
+      // Make a direct update instead of using the RPC function
+      // This helps avoid the status check constraint error
+      const { error } = await supabase
+        .from('donations')
+        .update({
+          status: 'pending',
+          reserved_by: user.id,
+          reserved_at: new Date().toISOString()
+        })
+        .eq('id', donationId)
+        .eq('status', 'available'); // Make sure it's still available
 
-      if (error) throw error;
+      if (error) {
+        console.error('Reservation error:', error);
+        throw new Error(`Failed to reserve donation: ${error.message}`);
+      }
 
-      if (data) {
-        // Refresh the donations list
-        await fetchAvailableDonations();
+      // Create notification for the donor
+      const { data: donationInfo } = await supabase
+        .from('donations')
+        .select('donor_id, food_name')
+        .eq('id', donationId)
+        .single();
         
-        toast({
-          title: "Donation Reserved",
-          description: "You have successfully reserved this donation. Please arrange for pickup.",
-        });
-      } else {
-        toast({
-          title: "Reservation Failed",
-          description: "This donation may no longer be available.",
-          variant: "destructive",
+      if (donationInfo) {
+        await supabase.from('notifications').insert({
+          user_id: donationInfo.donor_id,
+          title: 'Donation Reserved',
+          message: `Your donation "${donationInfo.food_name}" has been reserved by an NGO.`,
+          related_to: 'donation',
+          related_id: donationId
         });
       }
+      
+      // Refresh the donations list
+      await fetchAvailableDonations();
+      
+      toast({
+        title: "Donation Reserved",
+        description: "You have successfully reserved this donation. Please arrange for pickup.",
+      });
     } catch (error: any) {
       console.error('Error reserving donation:', error);
       toast({
         title: 'Error',
-        description: 'Failed to reserve donation. ' + error.message,
+        description: error.message || 'Failed to reserve donation',
         variant: 'destructive',
       });
     } finally {

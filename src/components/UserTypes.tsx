@@ -42,10 +42,10 @@ const UserTypes: React.FC = () => {
               </Button>
             </CardFooter>
           </Card>
-          <Card className="relative overflow-hidden">
+          <Card className="relative overflow-hidden bg-green-50 border-green-200">
             <CardHeader>
               <div className="flex items-center gap-2">
-                <Building2 className="h-6 w-6 text-primary" />
+                <Building2 className="h-6 w-6 text-green-600" />
                 <CardTitle>NGOs</CardTitle>
               </div>
               <CardDescription>
@@ -61,7 +61,7 @@ const UserTypes: React.FC = () => {
               </ul>
             </CardContent>
             <CardFooter>
-              <Button className="w-full" asChild>
+              <Button className="w-full bg-green-600 hover:bg-green-700" asChild>
                 <Link to="/auth?tab=signup&userType=ngo">Register as NGO</Link>
               </Button>
             </CardFooter>

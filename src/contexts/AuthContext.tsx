@@ -23,9 +23,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [refreshCount, setRefreshCount] = useState(0);
   const { toast } = useToast();
   
-  const MAX_RETRIES = 3;
+  const MAX_RETRIES = 5; // Increase retries
+  const RETRY_DELAY = 800; // Decrease initial delay
 
-  // Updated profile fetching with retries
+  // Updated profile fetching with improved retry logic
   const fetchProfile = async (userId: string, retryCount = 0) => {
     try {
       console.log(`Fetching profile for user: ${userId} (Attempt ${retryCount + 1}/${MAX_RETRIES + 1})`);
@@ -39,12 +40,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (error) {
         console.error('Error fetching profile:', error);
         
-        // If no rows found and we haven't reached max retries, retry after a delay
+        // If no rows found and we haven't reached max retries, retry with exponential backoff
         if (error.code === 'PGRST116' && retryCount < MAX_RETRIES) {
-          console.log(`Profile not found, retrying in ${(retryCount + 1) * 1000}ms...`);
+          const delay = RETRY_DELAY * Math.pow(1.5, retryCount); // Exponential backoff
+          console.log(`Profile not found, retrying in ${delay}ms...`);
           
-          // Wait with increasing backoff before retrying
-          setTimeout(() => fetchProfile(userId, retryCount + 1), (retryCount + 1) * 1000);
+          setTimeout(() => fetchProfile(userId, retryCount + 1), delay);
           return;
         }
         

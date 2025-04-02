@@ -49,7 +49,8 @@ const SignInForm: React.FC = () => {
         description: "You've successfully logged in.",
       });
       
-      navigate('/'); // Redirect to home page
+      // Redirect to dashboard instead of home page
+      navigate('/dashboard');
     } catch (error: any) {
       console.error('Exception during sign in:', error);
       setErrorMessage(error.message || "An unexpected error occurred.");

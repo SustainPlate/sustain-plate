@@ -20,7 +20,7 @@ serve(async (req) => {
     // Validate inputs
     if (!donation_id || !ngo_id) {
       return new Response(
-        JSON.stringify({ error: "Missing required parameters" }),
+        JSON.stringify({ success: false, message: "Missing required parameters" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -41,7 +41,7 @@ serve(async (req) => {
     if (checkError) {
       console.error("Error checking donation status:", checkError);
       return new Response(
-        JSON.stringify({ error: "Failed to verify donation status" }),
+        JSON.stringify({ success: false, message: "Failed to verify donation status" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -53,7 +53,25 @@ serve(async (req) => {
       );
     }
 
-    // Update donation status directly to avoid constraint issues
+    // Query the database to find valid status values
+    const { data: enumValues, error: enumError } = await supabase
+      .rpc('get_enum_values', { enum_name: 'donations_status_enum' })
+      .catch(() => ({ data: null, error: { message: "Failed to retrieve enum values" } }));
+
+    console.log("Valid status values:", enumValues);
+    
+    // If we can't determine valid values, use a safe default
+    const validStatus = enumValues || ["available", "pending", "completed", "cancelled"];
+    
+    if (!validStatus.includes('pending')) {
+      console.error("'pending' is not a valid status value. Valid values:", validStatus);
+      return new Response(
+        JSON.stringify({ success: false, message: "Invalid status configuration" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Update donation status directly
     const { data, error } = await supabase
       .from('donations')
       .update({
@@ -67,7 +85,7 @@ serve(async (req) => {
     if (error) {
       console.error("Error updating donation:", error);
       return new Response(
-        JSON.stringify({ error: "Failed to reserve donation: " + error.message }),
+        JSON.stringify({ success: false, message: "Failed to reserve donation: " + error.message }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -98,7 +116,7 @@ serve(async (req) => {
   } catch (error) {
     console.error("Exception in edge function:", error);
     return new Response(
-      JSON.stringify({ error: "Internal server error: " + error.message }),
+      JSON.stringify({ success: false, message: "Internal server error: " + error.message }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

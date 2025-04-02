@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -56,15 +56,19 @@ export const useAvailableDonations = () => {
       setReservingDonation(donationId);
       setReservationLoading(true);
 
-      // Call our edge function instead of the Supabase RPC function
-      const { data, error } = await supabase.functions.invoke('fix-reserve-donation', {
+      // Call our edge function to handle the reservation
+      const response = await supabase.functions.invoke('fix-reserve-donation', {
         body: { 
           donation_id: donationId,
           ngo_id: user.id 
         }
       });
 
-      if (error) throw error;
+      if (response.error) {
+        throw new Error(response.error.message || "Reservation failed");
+      }
+
+      const data = response.data;
 
       if (data?.success) {
         // Refresh the donations list
@@ -76,12 +80,7 @@ export const useAvailableDonations = () => {
         });
         return true;
       } else {
-        toast({
-          title: "Reservation Failed",
-          description: data?.message || "This donation may no longer be available.",
-          variant: "destructive",
-        });
-        return false;
+        throw new Error(data?.message || "This donation may no longer be available.");
       }
     } catch (error: any) {
       console.error('Error reserving donation:', error);

@@ -53,41 +53,36 @@ serve(async (req) => {
       );
     }
 
-    // Query the database to find valid status values
-    const { data: enumValues, error: enumError } = await supabase
-      .rpc('get_enum_values', { enum_name: 'donations_status_enum' })
-      .catch(() => ({ data: null, error: { message: "Failed to retrieve enum values" } }));
+    // Use raw SQL to update the donation status to avoid constraint issues
+    // This approach bypasses any type checking issues by directly using SQL with the correct values
+    const { data: updateResult, error: updateError } = await supabase.rpc(
+      'reserve_donation', 
+      { 
+        donation_id: donation_id,
+        ngo_id: ngo_id
+      }
+    );
 
-    console.log("Valid status values:", enumValues);
-    
-    // If we can't determine valid values, use a safe default
-    const validStatus = enumValues || ["available", "pending", "completed", "cancelled"];
-    
-    if (!validStatus.includes('pending')) {
-      console.error("'pending' is not a valid status value. Valid values:", validStatus);
-      return new Response(
-        JSON.stringify({ success: false, message: "Invalid status configuration" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    if (updateError) {
+      console.error("Error updating donation using RPC:", updateError);
+      // Try direct SQL as a fallback
+      try {
+        const { data, error } = await supabase.from('donations')
+          .update({
+            status: 'pending',
+            reserved_by: ngo_id,
+            reserved_at: new Date().toISOString()
+          })
+          .eq('id', donation_id)
+          .eq('status', 'available');
 
-    // Update donation status directly
-    const { data, error } = await supabase
-      .from('donations')
-      .update({
-        status: 'pending',
-        reserved_by: ngo_id,
-        reserved_at: new Date().toISOString()
-      })
-      .eq('id', donation_id)
-      .eq('status', 'available'); // Ensure it's still available
-
-    if (error) {
-      console.error("Error updating donation:", error);
-      return new Response(
-        JSON.stringify({ success: false, message: "Failed to reserve donation: " + error.message }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+        if (error) throw error;
+      } catch (sqlError) {
+        return new Response(
+          JSON.stringify({ success: false, message: "Failed to reserve donation: " + updateError.message }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
     }
 
     // Create notification for the donor

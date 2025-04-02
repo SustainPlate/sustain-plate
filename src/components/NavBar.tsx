@@ -5,12 +5,12 @@ import { Button } from "@/components/ui/button";
 import AuthButtons from '@/components/AuthButtons';
 import { Menu, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useMobile } from '@/hooks/use-mobile';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const NavBar: React.FC = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const isMobile = useMobile();
+  const isMobile = useIsMobile();
   
   // Handle scroll effect
   useEffect(() => {

@@ -53,33 +53,33 @@ serve(async (req) => {
       );
     }
 
-    // Use raw SQL to update the donation status to avoid constraint issues
-    // This approach bypasses any type checking issues by directly using SQL with the correct values
-    const { data: updateResult, error: updateError } = await supabase.rpc(
-      'reserve_donation', 
-      { 
-        donation_id: donation_id,
-        ngo_id: ngo_id
-      }
-    );
+    // Try direct update first as the most reliable approach
+    const { error: directUpdateError } = await supabase
+      .from('donations')
+      .update({
+        status: 'pending',
+        reserved_by: ngo_id,
+        reserved_at: new Date().toISOString()
+      })
+      .eq('id', donation_id)
+      .eq('status', 'available');
 
-    if (updateError) {
-      console.error("Error updating donation using RPC:", updateError);
-      // Try direct SQL as a fallback
-      try {
-        const { data, error } = await supabase.from('donations')
-          .update({
-            status: 'pending',
-            reserved_by: ngo_id,
-            reserved_at: new Date().toISOString()
-          })
-          .eq('id', donation_id)
-          .eq('status', 'available');
-
-        if (error) throw error;
-      } catch (sqlError) {
+    if (directUpdateError) {
+      console.error("Error with direct update:", directUpdateError);
+      
+      // If direct update fails, try the RPC method
+      const { data: rpcResult, error: rpcError } = await supabase.rpc(
+        'reserve_donation', 
+        { 
+          donation_id: donation_id,
+          ngo_id: ngo_id
+        }
+      );
+      
+      if (rpcError) {
+        console.error("Both direct update and RPC failed:", rpcError);
         return new Response(
-          JSON.stringify({ success: false, message: "Failed to reserve donation: " + updateError.message }),
+          JSON.stringify({ success: false, message: "Failed to reserve donation: " + directUpdateError.message }),
           { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }

@@ -16,8 +16,6 @@ import VolunteerRegistration from "./pages/VolunteerRegistration";
 import DeliveryDetails from "./pages/DeliveryDetails";
 import FAQ from "./pages/FAQ";
 import Contact from "./pages/Contact";
-import Blog from "./pages/Blog";
-import BlogPostDetail from "./pages/BlogPost";
 import DonationMap from "./pages/DonationMap";
 
 const queryClient = new QueryClient({
@@ -41,8 +39,6 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
             <Route path="/faq" element={<FAQ />} />
             <Route path="/contact" element={<Contact />} />
-            <Route path="/blog" element={<Blog />} />
-            <Route path="/blog/:id" element={<BlogPostDetail />} />
             <Route path="/donation-map" element={<DonationMap />} />
             <Route 
               path="/dashboard" 

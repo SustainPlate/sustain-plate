@@ -1,32 +1,28 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
 import { Donation } from '../types/DonationTypes';
 
 export const useAvailableDonations = () => {
-  const [loading, setLoading] = useState(false);
+  const { user } = useAuth();
   const { toast } = useToast();
   const [reservingDonation, setReservingDonation] = useState<string | null>(null);
-  const [stats, setStats] = useState({
-    available: 0,
-    reserved: 0,
-    completed: 0
-  });
-
-  // Fetch donations with React Query
-  const { data: donations = [], refetch } = useQuery({
+  const [reservationLoading, setReservationLoading] = useState(false);
+  
+  const {
+    data: donations,
+    isLoading,
+    refetch,
+  } = useQuery({
     queryKey: ['availableDonations'],
     queryFn: fetchAvailableDonations,
   });
 
-  // Function to fetch available donations
-  async function fetchAvailableDonations() {
+  async function fetchAvailableDonations(): Promise<Donation[]> {
     try {
-      setLoading(true);
-      
-      // Get all available donations
       const { data, error } = await supabase
         .from('donations')
         .select('*')
@@ -34,30 +30,6 @@ export const useAvailableDonations = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-
-      // Count donations by status
-      const availableCountQuery = await supabase
-        .from('donations')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'available');
-        
-      const pendingCountQuery = await supabase
-        .from('donations')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'pending');
-        
-      const completedCountQuery = await supabase
-        .from('donations')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'completed');
-      
-      // Process stats with individual counts
-      setStats({
-        available: availableCountQuery.count || 0,
-        reserved: pendingCountQuery.count || 0,
-        completed: completedCountQuery.count || 0
-      });
-
       return data as Donation[];
     } catch (error: any) {
       console.error('Error fetching donations:', error);
@@ -67,45 +39,34 @@ export const useAvailableDonations = () => {
         variant: 'destructive',
       });
       return [];
-    } finally {
-      setLoading(false);
     }
-  };
+  }
 
-  // Function to reserve a donation
-  const reserveDonation = async (donationId: string) => {
-    if (!donationId) return false;
+  const handleReserveDonation = async (donationId: string) => {
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "You need to be logged in to reserve donations.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     try {
       setReservingDonation(donationId);
+      setReservationLoading(true);
 
-      // First check the donation status to make sure it's still available
-      const { data: donationData, error: donationError } = await supabase
-        .from('donations')
-        .select('status')
-        .eq('id', donationId)
-        .single();
-
-      if (donationError) throw donationError;
-      
-      if (donationData.status !== 'available') {
-        toast({
-          title: "Donation Unavailable",
-          description: "This donation is no longer available for reservation.",
-          variant: "destructive",
-        });
-        return false;
-      }
-
-      // Call the Supabase function to reserve the donation
-      const { data, error } = await supabase.rpc('reserve_donation', {
-        donation_id: donationId,
-        ngo_id: (await supabase.auth.getUser()).data.user?.id
+      // Call our edge function instead of the Supabase RPC function
+      const { data, error } = await supabase.functions.invoke('fix-reserve-donation', {
+        body: { 
+          donation_id: donationId,
+          ngo_id: user.id 
+        }
       });
 
       if (error) throw error;
 
-      if (data) {
+      if (data?.success) {
         // Refresh the donations list
         await refetch();
         
@@ -117,7 +78,7 @@ export const useAvailableDonations = () => {
       } else {
         toast({
           title: "Reservation Failed",
-          description: "This donation may no longer be available.",
+          description: data?.message || "This donation may no longer be available.",
           variant: "destructive",
         });
         return false;
@@ -132,17 +93,16 @@ export const useAvailableDonations = () => {
       return false;
     } finally {
       setReservingDonation(null);
+      setReservationLoading(false);
     }
   };
 
   return {
     donations,
-    loading,
-    stats,
+    isLoading,
     reservingDonation,
-    reserveDonation,
-    refetchDonations: refetch
+    reservationLoading,
+    handleReserveDonation,
+    refetchDonations: refetch,
   };
 };
-
-export default useAvailableDonations;

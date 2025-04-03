@@ -53,7 +53,8 @@ serve(async (req) => {
       );
     }
 
-    // Try using the RPC function as the primary approach (most reliable)
+    // Use the RPC function first - this is specifically designed for this operation
+    console.log("Attempting reservation using RPC function");
     const { data: rpcResult, error: rpcError } = await supabase.rpc(
       'reserve_donation', 
       { 
@@ -63,13 +64,14 @@ serve(async (req) => {
     );
     
     if (rpcError) {
-      console.error("Error with RPC call:", rpcError);
+      console.error("Error with RPC reservation:", rpcError);
       
-      // If RPC fails, try direct update as fallback
+      // If RPC fails, try manual update with a specific valid status value
+      console.log("Attempting direct update as fallback");
       const { error: directUpdateError } = await supabase
         .from('donations')
         .update({
-          status: 'pending',
+          status: 'pending',  // Ensure this matches a valid enum value in the database
           reserved_by: ngo_id,
           reserved_at: new Date().toISOString()
         })
@@ -77,15 +79,19 @@ serve(async (req) => {
         .eq('status', 'available');
         
       if (directUpdateError) {
-        console.error("Both RPC and direct update failed:", directUpdateError);
+        console.error("Direct update also failed:", directUpdateError);
         return new Response(
-          JSON.stringify({ success: false, message: "Failed to reserve donation: " + rpcError.message }),
+          JSON.stringify({ 
+            success: false, 
+            message: "Failed to reserve donation. Please try again later.",
+            error: directUpdateError.message
+          }),
           { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
     }
 
-    // Create notification for the donor (even if we used direct update)
+    // Create notification for the donor
     const { data: donation } = await supabase
       .from('donations')
       .select('donor_id, food_name')

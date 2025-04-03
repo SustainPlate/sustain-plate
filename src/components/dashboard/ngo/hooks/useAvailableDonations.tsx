@@ -55,8 +55,27 @@ export const useAvailableDonations = () => {
     try {
       setReservingDonation(donationId);
       setReservationLoading(true);
+      
+      console.log(`Attempting to reserve donation ${donationId} for NGO ${user.id}`);
+
+      // First check if donation is still available
+      const { data: donationCheck, error: checkError } = await supabase
+        .from('donations')
+        .select('status')
+        .eq('id', donationId)
+        .single();
+
+      if (checkError) {
+        console.error('Error checking donation status:', checkError);
+        throw new Error('Failed to verify donation availability');
+      }
+
+      if (!donationCheck || donationCheck.status !== 'available') {
+        throw new Error('This donation is no longer available for reservation');
+      }
 
       // Call our edge function to handle the reservation
+      console.log('Calling edge function for reservation');
       const { data, error } = await supabase.functions.invoke('fix-reserve-donation', {
         body: { 
           donation_id: donationId,
@@ -69,6 +88,8 @@ export const useAvailableDonations = () => {
         throw new Error(error.message || "Reservation failed");
       }
 
+      console.log('Edge function response:', data);
+      
       if (!data?.success) {
         throw new Error(data?.message || "This donation may no longer be available.");
       }

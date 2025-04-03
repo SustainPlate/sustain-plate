@@ -49,7 +49,7 @@ export const useAvailableDonations = () => {
         description: "You need to be logged in to reserve donations.",
         variant: "destructive",
       });
-      return;
+      return false;
     }
 
     try {
@@ -57,31 +57,31 @@ export const useAvailableDonations = () => {
       setReservationLoading(true);
 
       // Call our edge function to handle the reservation
-      const response = await supabase.functions.invoke('fix-reserve-donation', {
+      const { data, error } = await supabase.functions.invoke('fix-reserve-donation', {
         body: { 
           donation_id: donationId,
           ngo_id: user.id 
         }
       });
 
-      if (response.error) {
-        throw new Error(response.error.message || "Reservation failed");
+      if (error) {
+        console.error('Function error:', error);
+        throw new Error(error.message || "Reservation failed");
       }
 
-      const data = response.data;
-
-      if (data?.success) {
-        // Refresh the donations list
-        await refetch();
-        
-        toast({
-          title: "Donation Reserved",
-          description: "You have successfully reserved this donation. Please arrange for pickup.",
-        });
-        return true;
-      } else {
+      if (!data?.success) {
         throw new Error(data?.message || "This donation may no longer be available.");
       }
+      
+      // Refresh the donations list
+      await refetch();
+      
+      toast({
+        title: "Donation Reserved",
+        description: "You have successfully reserved this donation. Please arrange for pickup.",
+      });
+      
+      return true;
     } catch (error: any) {
       console.error('Error reserving donation:', error);
       toast({

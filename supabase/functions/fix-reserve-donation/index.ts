@@ -53,39 +53,39 @@ serve(async (req) => {
       );
     }
 
-    // Try direct update first as the most reliable approach
-    const { error: directUpdateError } = await supabase
-      .from('donations')
-      .update({
-        status: 'pending',
-        reserved_by: ngo_id,
-        reserved_at: new Date().toISOString()
-      })
-      .eq('id', donation_id)
-      .eq('status', 'available');
-
-    if (directUpdateError) {
-      console.error("Error with direct update:", directUpdateError);
+    // Try using the RPC function as the primary approach (most reliable)
+    const { data: rpcResult, error: rpcError } = await supabase.rpc(
+      'reserve_donation', 
+      { 
+        donation_id: donation_id,
+        ngo_id: ngo_id
+      }
+    );
+    
+    if (rpcError) {
+      console.error("Error with RPC call:", rpcError);
       
-      // If direct update fails, try the RPC method
-      const { data: rpcResult, error: rpcError } = await supabase.rpc(
-        'reserve_donation', 
-        { 
-          donation_id: donation_id,
-          ngo_id: ngo_id
-        }
-      );
-      
-      if (rpcError) {
-        console.error("Both direct update and RPC failed:", rpcError);
+      // If RPC fails, try direct update as fallback
+      const { error: directUpdateError } = await supabase
+        .from('donations')
+        .update({
+          status: 'pending',
+          reserved_by: ngo_id,
+          reserved_at: new Date().toISOString()
+        })
+        .eq('id', donation_id)
+        .eq('status', 'available');
+        
+      if (directUpdateError) {
+        console.error("Both RPC and direct update failed:", directUpdateError);
         return new Response(
-          JSON.stringify({ success: false, message: "Failed to reserve donation: " + directUpdateError.message }),
+          JSON.stringify({ success: false, message: "Failed to reserve donation: " + rpcError.message }),
           { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
     }
 
-    // Create notification for the donor
+    // Create notification for the donor (even if we used direct update)
     const { data: donation } = await supabase
       .from('donations')
       .select('donor_id, food_name')

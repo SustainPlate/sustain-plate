@@ -20,14 +20,43 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
-  const [refreshCount, setRefreshCount] = useState(0);
+  const [profileFetchAttempts, setProfileFetchAttempts] = useState(0);
   const { toast } = useToast();
   
-  const MAX_RETRIES = 5; // Increase retries
-  const RETRY_DELAY = 800; // Decrease initial delay
+  const MAX_RETRIES = 3; // Reduce number of retries
+  const RETRY_DELAY = 1000; // Set consistent delay
+
+  // Handle tab visibility change for auto logout
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        // Save the timestamp when the user leaves the page
+        localStorage.setItem('lastActiveTime', Date.now().toString());
+      } else if (document.visibilityState === 'visible') {
+        const lastActiveTime = localStorage.getItem('lastActiveTime');
+        if (lastActiveTime) {
+          const inactiveTime = Date.now() - parseInt(lastActiveTime);
+          // If inactive for more than 5 minutes, sign out
+          if (inactiveTime > 5 * 60 * 1000) {
+            signOut();
+            toast({
+              title: "Session Expired",
+              description: "You have been signed out due to inactivity.",
+            });
+          }
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
 
   // Updated profile fetching with improved retry logic
-  const fetchProfile = async (userId: string, retryCount = 0) => {
+  const fetchProfile = async (userId: string, retryCount = 0): Promise<boolean> => {
     try {
       console.log(`Fetching profile for user: ${userId} (Attempt ${retryCount + 1}/${MAX_RETRIES + 1})`);
       
@@ -40,27 +69,37 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (error) {
         console.error('Error fetching profile:', error);
         
-        // If no rows found and we haven't reached max retries, retry with exponential backoff
+        // If no rows found and we haven't reached max retries, retry
         if (error.code === 'PGRST116' && retryCount < MAX_RETRIES) {
-          const delay = RETRY_DELAY * Math.pow(1.5, retryCount); // Exponential backoff
+          const delay = RETRY_DELAY;
           console.log(`Profile not found, retrying in ${delay}ms...`);
           
-          setTimeout(() => fetchProfile(userId, retryCount + 1), delay);
-          return;
+          return new Promise(resolve => {
+            setTimeout(async () => {
+              const result = await fetchProfile(userId, retryCount + 1);
+              resolve(result);
+            }, delay);
+          });
         }
         
         if (retryCount >= MAX_RETRIES) {
           console.error('Max retries reached, unable to fetch profile');
+          return false;
         }
+        
+        return false;
       } else if (data) {
         console.log('Profile fetched successfully:', data);
         setProfile(data);
-        return;
+        setProfileFetchAttempts(0); // Reset attempts counter on success
+        return true;
       } else {
         console.warn('No profile found for user:', userId);
+        return false;
       }
     } catch (error) {
       console.error('Exception fetching profile:', error);
+      return false;
     }
   };
 
@@ -88,7 +127,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          await fetchProfile(session.user.id);
+          const profileSuccess = await fetchProfile(session.user.id);
+          // If profile fetch fails after all retries, sign out
+          if (!profileSuccess && profileFetchAttempts > MAX_RETRIES) {
+            console.warn('Failed to fetch profile after multiple attempts, signing out');
+            await signOut();
+            toast({
+              title: "Error",
+              description: "Could not load your profile. Please try logging in again.",
+              variant: "destructive",
+            });
+          }
         }
         setLoading(false);
       } catch (error) {
@@ -114,6 +163,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           }
         } else if (event === 'SIGNED_OUT') {
           setProfile(null);
+          localStorage.removeItem('lastActiveTime'); // Clear last active time
         }
         
         setLoading(false);
@@ -128,11 +178,43 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
     }, 5000);
 
+    // Check for session expiration on window focus
+    const handleWindowFocus = () => {
+      const tokenExpiryData = localStorage.getItem('supabase.auth.token');
+      if (tokenExpiryData && user) {
+        try {
+          const tokenExpiry = JSON.parse(tokenExpiryData)?.expiresAt;
+          if (tokenExpiry && Date.now() > tokenExpiry * 1000) {
+            signOut();
+            toast({
+              title: "Session Expired",
+              description: "Your session has expired. Please log in again.",
+            });
+          }
+        } catch (error) {
+          console.error('Error checking token expiry:', error);
+        }
+      }
+    };
+
+    window.addEventListener('focus', handleWindowFocus);
+
+    // Set up before unload event to update last active time
+    const handleBeforeUnload = () => {
+      if (user) {
+        localStorage.setItem('lastActiveTime', Date.now().toString());
+      }
+    };
+    
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
     return () => {
       subscription.unsubscribe();
       clearTimeout(timeout);
+      window.removeEventListener('focus', handleWindowFocus);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
     };
-  }, [refreshCount]); // Add refreshCount dependency to allow force-refreshing the effect
+  }, [profileFetchAttempts]); // Track profile fetch attempts
 
   const signOut = async () => {
     try {
@@ -157,6 +239,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           title: "Signed out",
           description: "You have been successfully signed out.",
         });
+        // Clear any authentication-related storage
+        localStorage.removeItem('lastActiveTime');
       }
     } catch (error: any) {
       console.error('Exception during sign out:', error);
@@ -168,11 +252,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     } finally {
       setLoading(false);
     }
-  };
-
-  // Manual refresh trigger
-  const forceRefresh = () => {
-    setRefreshCount(prev => prev + 1);
   };
 
   return (

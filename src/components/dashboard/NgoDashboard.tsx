@@ -36,6 +36,11 @@ const NgoDashboard: React.FC = () => {
     setShowConfirmDialog(false);
   };
 
+  // Handle refetch with a proper click handler function
+  const handleRefetchClick = () => {
+    refetchDonations();
+  };
+
   // Calculate stats based on current donations data
   const stats = {
     available: donations?.length || 0,
@@ -53,7 +58,7 @@ const NgoDashboard: React.FC = () => {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" className="gap-2" onClick={refetchDonations}>
+          <Button variant="outline" className="gap-2" onClick={handleRefetchClick}>
             <Search className="h-4 w-4" />
             Browse Donations
           </Button>

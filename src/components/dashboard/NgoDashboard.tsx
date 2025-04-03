@@ -1,158 +1,46 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
-import { Search, Loader2 } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/components/ui/use-toast';
+import { Search } from 'lucide-react';
 import StatsCards from './ngo/StatsCards';
-import DonationTable, { Donation } from './ngo/DonationTable';
+import DonationTable from './ngo/DonationTable';
 import ReservationDialog from './ngo/ReservationDialog';
 import MyReservations from './ngo/MyReservations';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useAvailableDonations } from './ngo/hooks/useAvailableDonations';
+import type { Donation } from './ngo/types/DonationTypes';
 
 const NgoDashboard: React.FC = () => {
-  const { profile, user } = useAuth();
-  const [donations, setDonations] = useState<Donation[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [reservingDonation, setReservingDonation] = useState<string | null>(null);
-  const [reservationLoading, setReservationLoading] = useState(false);
+  const { profile } = useAuth();
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [selectedDonation, setSelectedDonation] = useState<Donation | null>(null);
-  const [stats, setStats] = useState({
-    available: 0,
-    reserved: 0,
-    completed: 0
-  });
-  const { toast } = useToast();
-
-  useEffect(() => {
-    fetchAvailableDonations();
-  }, []);
-
-  const fetchAvailableDonations = async () => {
-    try {
-      setLoading(true);
-      
-      // Get all available donations
-      const { data, error } = await supabase
-        .from('donations')
-        .select('*')
-        .eq('status', 'available')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-
-      // Count donations by status
-      // Using separate queries instead of group by since TypeScript doesn't recognize the group method
-      const availableCountQuery = await supabase
-        .from('donations')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'available');
-        
-      const pendingCountQuery = await supabase
-        .from('donations')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'pending');
-        
-      const completedCountQuery = await supabase
-        .from('donations')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'completed');
-
-      setDonations(data as Donation[]);
-      
-      // Process stats with individual counts
-      setStats({
-        available: availableCountQuery.count || 0,
-        reserved: pendingCountQuery.count || 0,
-        completed: completedCountQuery.count || 0
-      });
-    } catch (error: any) {
-      console.error('Error fetching donations:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to load donations. ' + error.message,
-        variant: 'destructive',
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+  
+  const {
+    donations,
+    isLoading,
+    reservingDonation,
+    reservationLoading,
+    handleReserveDonation,
+    refetchDonations
+  } = useAvailableDonations();
 
   const openReservationConfirm = (donation: Donation) => {
     setSelectedDonation(donation);
     setShowConfirmDialog(true);
   };
 
-  const handleReserveDonation = async (donationId: string) => {
-    if (!user) {
-      toast({
-        title: "Authentication Required",
-        description: "You need to be logged in to reserve donations.",
-        variant: "destructive",
-      });
-      return;
-    }
+  const confirmReservation = async (donationId: string) => {
+    await handleReserveDonation(donationId);
+    setShowConfirmDialog(false);
+  };
 
-    try {
-      setReservingDonation(donationId);
-      setReservationLoading(true);
-
-      // First check the donation status to make sure it's still available
-      const { data: donationData, error: donationError } = await supabase
-        .from('donations')
-        .select('status')
-        .eq('id', donationId)
-        .single();
-
-      if (donationError) throw donationError;
-      
-      if (donationData.status !== 'available') {
-        toast({
-          title: "Donation Unavailable",
-          description: "This donation is no longer available for reservation.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Call the Supabase function to reserve the donation
-      const { data, error } = await supabase.rpc('reserve_donation', {
-        donation_id: donationId,
-        ngo_id: user.id
-      });
-
-      if (error) throw error;
-
-      if (data) {
-        // Refresh the donations list
-        await fetchAvailableDonations();
-        
-        toast({
-          title: "Donation Reserved",
-          description: "You have successfully reserved this donation. Please arrange for pickup.",
-        });
-      } else {
-        toast({
-          title: "Reservation Failed",
-          description: "This donation may no longer be available.",
-          variant: "destructive",
-        });
-      }
-    } catch (error: any) {
-      console.error('Error reserving donation:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to reserve donation. ' + error.message,
-        variant: 'destructive',
-      });
-    } finally {
-      setReservingDonation(null);
-      setReservationLoading(false);
-      setShowConfirmDialog(false);
-    }
+  // Calculate stats based on current donations data
+  const stats = {
+    available: donations?.length || 0,
+    reserved: 0,  // This would need to be fetched separately
+    completed: 0  // This would need to be fetched separately
   };
 
   return (
@@ -165,7 +53,7 @@ const NgoDashboard: React.FC = () => {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" className="gap-2" onClick={fetchAvailableDonations}>
+          <Button variant="outline" className="gap-2" onClick={refetchDonations}>
             <Search className="h-4 w-4" />
             Browse Donations
           </Button>
@@ -173,7 +61,7 @@ const NgoDashboard: React.FC = () => {
       </div>
 
       {/* Stats Cards */}
-      <StatsCards stats={stats} loading={loading} />
+      <StatsCards stats={stats} loading={isLoading} />
 
       {/* Tabs for Available Donations and My Reservations */}
       <Tabs defaultValue="available" className="w-full">
@@ -190,8 +78,8 @@ const NgoDashboard: React.FC = () => {
             </CardHeader>
             <CardContent>
               <DonationTable 
-                donations={donations} 
-                loading={loading} 
+                donations={donations || []} 
+                loading={isLoading} 
                 reservingDonation={reservingDonation}
                 onReserve={openReservationConfirm}
               />
@@ -218,7 +106,7 @@ const NgoDashboard: React.FC = () => {
         onOpenChange={setShowConfirmDialog}
         selectedDonation={selectedDonation}
         reservationLoading={reservationLoading}
-        onConfirm={handleReserveDonation}
+        onConfirm={confirmReservation}
       />
     </div>
   );

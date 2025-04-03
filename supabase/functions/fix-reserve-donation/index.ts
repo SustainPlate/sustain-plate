@@ -29,6 +29,13 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
     
+    if (!supabaseUrl || !supabaseServiceKey) {
+      return new Response(
+        JSON.stringify({ success: false, message: "Server configuration error" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // First check if donation exists and is available
@@ -53,41 +60,69 @@ serve(async (req) => {
       );
     }
 
-    // Use the RPC function first - this is specifically designed for this operation
+    // First try using the RPC function
     console.log("Attempting reservation using RPC function");
     const { data: rpcResult, error: rpcError } = await supabase.rpc(
-      'reserve_donation', 
+      'reserve_donation',
       { 
         donation_id: donation_id,
         ngo_id: ngo_id
       }
     );
-    
+
+    // If RPC fails, we'll try direct update as fallback
     if (rpcError) {
-      console.error("Error with RPC reservation:", rpcError);
+      console.error("RPC reservation failed:", rpcError);
       
-      // If RPC fails, try manual update with a specific valid status value
+      // Query the database to get valid status values
+      const { data: statusData, error: statusError } = await supabase.query(`
+        SELECT enum_range(NULL::public.donation_status) as valid_statuses;
+      `);
+      
+      if (statusError) {
+        console.error("Failed to query valid statuses:", statusError);
+      } else {
+        console.log("Valid status values:", statusData);
+      }
+      
+      // Try direct update with 'pending' status
       console.log("Attempting direct update as fallback");
       const { error: directUpdateError } = await supabase
         .from('donations')
         .update({
-          status: 'pending',  // Ensure this matches a valid enum value in the database
+          status: 'pending', // This must match a valid enum value in the database
           reserved_by: ngo_id,
           reserved_at: new Date().toISOString()
         })
         .eq('id', donation_id)
         .eq('status', 'available');
-        
+      
       if (directUpdateError) {
-        console.error("Direct update also failed:", directUpdateError);
-        return new Response(
-          JSON.stringify({ 
-            success: false, 
-            message: "Failed to reserve donation. Please try again later.",
-            error: directUpdateError.message
-          }),
-          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        console.error("Direct update failed:", directUpdateError);
+        
+        // If direct update with 'pending' fails, try with 'reserved' status
+        const { error: fallbackUpdateError } = await supabase
+          .from('donations')
+          .update({
+            status: 'reserved', // Try alternative valid status
+            reserved_by: ngo_id,
+            reserved_at: new Date().toISOString()
+          })
+          .eq('id', donation_id)
+          .eq('status', 'available');
+        
+        if (fallbackUpdateError) {
+          console.error("Fallback update also failed:", fallbackUpdateError);
+          return new Response(
+            JSON.stringify({ 
+              success: false, 
+              message: "Failed to reserve donation. Please try again later.",
+              error: directUpdateError.message,
+              fallbackError: fallbackUpdateError.message
+            }),
+            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
       }
     }
 

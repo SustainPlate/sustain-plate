@@ -12,18 +12,7 @@ import {
   TableRow 
 } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
-
-export type Donation = {
-  id: string;
-  food_name: string;
-  quantity: number;
-  unit: string;
-  expiry_date: string;
-  status: string;
-  created_at: string;
-  pickup_address: string;
-  description: string | null;
-};
+import { Donation } from './types/DonationTypes';
 
 interface DonationTableProps {
   donations: Donation[];
@@ -40,7 +29,12 @@ const DonationTable: React.FC<DonationTableProps> = ({
 }) => {
   // Helper function to format the date
   const formatDate = (dateString: string) => {
-    return format(new Date(dateString), 'MMM d, yyyy');
+    try {
+      return format(new Date(dateString), 'MMM d, yyyy');
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return 'Invalid date';
+    }
   };
 
   if (loading) {
@@ -53,7 +47,7 @@ const DonationTable: React.FC<DonationTableProps> = ({
     );
   }
 
-  if (donations.length === 0) {
+  if (!donations || donations.length === 0) {
     return (
       <div className="text-center py-8">
         <Package className="mx-auto h-12 w-12 text-gray-400 mb-4" />
@@ -91,14 +85,14 @@ const DonationTable: React.FC<DonationTableProps> = ({
                 </div>
               </TableCell>
               <TableCell className="max-w-xs truncate" title={donation.pickup_address}>
-                {donation.pickup_address}
+                {donation.pickup_address || 'No address provided'}
               </TableCell>
               <TableCell className="text-right">
                 <Button 
                   variant="outline" 
                   size="sm"
                   onClick={() => onReserve(donation)}
-                  disabled={reservingDonation === donation.id}
+                  disabled={!!reservingDonation}
                 >
                   {reservingDonation === donation.id ? (
                     <>

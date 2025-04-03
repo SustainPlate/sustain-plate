@@ -3,13 +3,14 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
-import { Search } from 'lucide-react';
+import { Search, RefreshCw, AlertCircle } from 'lucide-react';
 import StatsCards from './ngo/StatsCards';
 import DonationTable from './ngo/DonationTable';
 import ReservationDialog from './ngo/ReservationDialog';
 import MyReservations from './ngo/MyReservations';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAvailableDonations } from './ngo/hooks/useAvailableDonations';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import type { Donation } from './ngo/types/DonationTypes';
 
 const NgoDashboard: React.FC = () => {
@@ -20,8 +21,10 @@ const NgoDashboard: React.FC = () => {
   const {
     donations,
     isLoading,
+    isRefetching,
     reservingDonation,
     reservationLoading,
+    reservationError,
     handleReserveDonation,
     refetchDonations
   } = useAvailableDonations();
@@ -32,8 +35,10 @@ const NgoDashboard: React.FC = () => {
   };
 
   const confirmReservation = async (donationId: string) => {
-    await handleReserveDonation(donationId);
-    setShowConfirmDialog(false);
+    const success = await handleReserveDonation(donationId);
+    if (success) {
+      setShowConfirmDialog(false);
+    }
   };
 
   // Handle refetch with a proper click handler function
@@ -58,12 +63,29 @@ const NgoDashboard: React.FC = () => {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" className="gap-2" onClick={handleRefetchClick}>
-            <Search className="h-4 w-4" />
-            Browse Donations
+          <Button 
+            variant="outline" 
+            className="gap-2" 
+            onClick={handleRefetchClick}
+            disabled={isRefetching}
+          >
+            {isRefetching ? (
+              <RefreshCw className="h-4 w-4 animate-spin" />
+            ) : (
+              <Search className="h-4 w-4" />
+            )}
+            {isRefetching ? "Refreshing..." : "Browse Donations"}
           </Button>
         </div>
       </div>
+
+      {reservationError && (
+        <Alert variant="destructive" className="mb-4">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>{reservationError}</AlertDescription>
+        </Alert>
+      )}
 
       {/* Stats Cards */}
       <StatsCards stats={stats} loading={isLoading} />
@@ -84,7 +106,7 @@ const NgoDashboard: React.FC = () => {
             <CardContent>
               <DonationTable 
                 donations={donations || []} 
-                loading={isLoading} 
+                loading={isLoading || isRefetching} 
                 reservingDonation={reservingDonation}
                 onReserve={openReservationConfirm}
               />
